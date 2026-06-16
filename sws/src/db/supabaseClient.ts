@@ -1,0 +1,20 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+// Detect if we have valid-looking Supabase credentials
+export const isSupabaseConfigured =
+  supabaseUrl.trim() !== '' &&
+  supabaseAnonKey.trim() !== '' &&
+  !supabaseUrl.includes('your-supabase-project-id');
+
+export const supabase = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
+
+if (!isSupabaseConfigured) {
+  console.warn(
+    'Supabase has not been configured. The SmartFarm app will run in offline LocalStorage mode.'
+  );
+}
