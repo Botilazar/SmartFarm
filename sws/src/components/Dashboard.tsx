@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Sprout, Search, Bell, LogOut, LayoutDashboard, Package,
   Plus, ArrowLeftRight, QrCode, Users as UsersIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
 import { dbService, getStockStatus } from '../db/dbService';
 import type { Material, Transaction, UserProfile } from '../db/dbService';
@@ -45,6 +45,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [showScanner, setShowScanner] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
 
+  // Notifications states
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [lastReadTimestamp, setLastReadTimestamp] = useState<string>(() => {
+    return localStorage.getItem('smartfarm_last_read_notifications') || new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+  });
+  const desktopNotificationsRef = useRef<HTMLDivElement>(null);
+  const mobileNotificationsRef = useRef<HTMLDivElement>(null);
+
   // Selected material for transaction (Checkout / Intake)
   const [transactionMaterial, setTransactionMaterial] = useState<Material | null>(null);
 
@@ -53,6 +61,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
   // Track system status
   const isMock = dbService.isMockMode();
+
+  // Relative time helper
+  const formatRelativeTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'Épp most';
+    if (diffMins < 60) return `${diffMins} perce`;
+    if (diffHours < 24) {
+      if (date.getDate() === now.getDate()) {
+        return `Ma ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+      }
+      return `Tegnap ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    }
+    if (diffDays === 1) {
+      return `Tegnap ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    }
+    return `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(2, '0')}. ${String(date.getDate()).padStart(2, '0')}. ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  };
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const desktopClickedInside = desktopNotificationsRef.current && desktopNotificationsRef.current.contains(event.target as Node);
+      const mobileClickedInside = mobileNotificationsRef.current && mobileNotificationsRef.current.contains(event.target as Node);
+      
+      if (!desktopClickedInside && !mobileClickedInside) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Listen to window size
   useEffect(() => {
@@ -162,6 +209,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
   // Stats calculation for notifications badge
   const lowStockCount = materials.filter(m => getStockStatus(m.quantity, m.max_quantity) !== 'green').length;
+  
+  // Calculate unread transactions for the bell badge
+  const unreadCount = transactions.filter(
+    (t) => new Date(t.timestamp).getTime() > new Date(lastReadTimestamp).getTime()
+  ).length;
+
+  const markNotificationsAsRead = () => {
+    const nowStr = new Date().toISOString();
+    setLastReadTimestamp(nowStr);
+    localStorage.setItem('smartfarm_last_read_notifications', nowStr);
+  };
 
   // ----------------------------------------------------
   // DESKTOP INTERFACE RENDERING
@@ -266,10 +324,74 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 <span>QR Beolvasás</span>
               </button>
 
-              <button className="icon-btn-badge" aria-label="Értesítések">
-                <Bell size={20} />
-                {lowStockCount > 0 && <span className="badge-dot">{lowStockCount}</span>}
-              </button>
+              <div className="notification-bell-container" ref={desktopNotificationsRef}>
+                <button
+                  className="icon-btn-badge"
+                  aria-label="Értesítések"
+                  onClick={() => {
+                    const nextShow = !showNotifications;
+                    setShowNotifications(nextShow);
+                    if (nextShow) {
+                      markNotificationsAsRead();
+                    }
+                  }}
+                >
+                  <Bell size={20} />
+                  {unreadCount > 0 && <span className="badge-dot">{unreadCount}</span>}
+                </button>
+
+                {showNotifications && (
+                  <div className="notifications-dropdown">
+                    <div className="notifications-dropdown-header">
+                      <h3>Legutóbbi készletmozgások</h3>
+                    </div>
+                    <div className="notifications-dropdown-content">
+                      {transactions.length === 0 ? (
+                        <div className="notifications-empty">
+                          Még nem történt készletmozgás.
+                        </div>
+                      ) : (
+                        [...transactions]
+                          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                          .slice(0, 5)
+                          .map((t) => (
+                            <div
+                              key={t.id}
+                              className="notification-item"
+                              onClick={() => {
+                                setActiveView('movements');
+                                setShowNotifications(false);
+                              }}
+                            >
+                              <div className={`notification-icon-wrapper ${t.type}`}>
+                                {t.type === 'intake' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                              </div>
+                              <div className="notification-details">
+                                <span className="notification-text">
+                                  <strong>{t.user_name}</strong> {t.type === 'intake' ? 'bevételezett' : 'kiadott'} {Math.abs(t.quantity)} db <strong>{t.material_name}</strong> terméket.
+                                </span>
+                                <div className="notification-meta">
+                                  <span className="notification-time">{formatRelativeTime(t.timestamp)}</span>
+                                  {t.notes && <span className="notification-notes" title={t.notes}>• {t.notes}</span>}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                      )}
+                    </div>
+                    <div className="notifications-dropdown-footer">
+                      <button
+                        onClick={() => {
+                          setActiveView('movements');
+                          setShowNotifications(false);
+                        }}
+                      >
+                        Összes mozgás megtekintése
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div className="profile-dropdown-btn">
                 <img
@@ -364,10 +486,74 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
               <button className="mobile-badge-btn" onClick={() => setShowScanner(true)}>
                 <QrCode size={22} />
               </button>
-              <button className="mobile-badge-btn">
-                <Bell size={22} />
-                {lowStockCount > 0 && <span className="badge-dot" style={{ top: '-2px', right: '-2px' }} />}
-              </button>
+              <div className="notification-bell-container" ref={mobileNotificationsRef} style={{ position: 'relative' }}>
+                <button
+                  className="mobile-badge-btn"
+                  onClick={() => {
+                    const nextShow = !showNotifications;
+                    setShowNotifications(nextShow);
+                    if (nextShow) {
+                      markNotificationsAsRead();
+                    }
+                  }}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                >
+                  <Bell size={22} />
+                  {unreadCount > 0 && <span className="badge-dot" style={{ top: '-2px', right: '-2px' }}>{unreadCount}</span>}
+                </button>
+
+                {showNotifications && (
+                  <div className="notifications-dropdown mobile">
+                    <div className="notifications-dropdown-header">
+                      <h3>Legutóbbi készletmozgások</h3>
+                    </div>
+                    <div className="notifications-dropdown-content">
+                      {transactions.length === 0 ? (
+                        <div className="notifications-empty">
+                          Még nem történt készletmozgás.
+                        </div>
+                      ) : (
+                        [...transactions]
+                          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                          .slice(0, 5)
+                          .map((t) => (
+                            <div
+                              key={t.id}
+                              className="notification-item"
+                              onClick={() => {
+                                setMobileTab('movements');
+                                setShowNotifications(false);
+                              }}
+                            >
+                              <div className={`notification-icon-wrapper ${t.type}`}>
+                                {t.type === 'intake' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                              </div>
+                              <div className="notification-details">
+                                <span className="notification-text">
+                                  <strong>{t.user_name}</strong> {t.type === 'intake' ? 'bevételezett' : 'kiadott'} {Math.abs(t.quantity)} db <strong>{t.material_name}</strong> terméket.
+                                </span>
+                                <div className="notification-meta">
+                                  <span className="notification-time">{formatRelativeTime(t.timestamp)}</span>
+                                  {t.notes && <span className="notification-notes" title={t.notes}>• {t.notes}</span>}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                      )}
+                    </div>
+                    <div className="notifications-dropdown-footer">
+                      <button
+                        onClick={() => {
+                          setMobileTab('movements');
+                          setShowNotifications(false);
+                        }}
+                      >
+                        Összes mozgás megtekintése
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <img
                 src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=fff&color=006837`}
                 alt={user.name}

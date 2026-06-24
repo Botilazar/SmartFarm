@@ -441,9 +441,19 @@ input:focus, select:focus, textarea:focus {
 
 .icon-btn-badge {
   position: relative;
-  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
   color: var(--text-secondary);
   border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  transition: var(--transition);
 }
 
 .icon-btn-badge:hover {
@@ -1584,6 +1594,196 @@ input:focus, select:focus, textarea:focus {
 
 .sidebar-header .brand-name {
   color: white !important;
+}
+
+/* Notifications Bell & Dropdown Styles */
+.notification-bell-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.notifications-dropdown {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  width: 380px;
+  background-color: var(--bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border);
+  z-index: 1000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideDownIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.notifications-dropdown.mobile {
+  position: fixed;
+  top: 60px;
+  right: 16px;
+  left: 16px;
+  width: auto;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes slideDownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notifications-dropdown-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--bg-app);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notifications-dropdown-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.notifications-dropdown-content {
+  max-height: 380px;
+  overflow-y: auto;
+  background-color: var(--bg-card);
+}
+
+/* Custom Scrollbar for Notifications Content */
+.notifications-dropdown-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notifications-dropdown-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notifications-dropdown-content::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.notifications-dropdown-content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.notification-item {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+  align-items: flex-start;
+}
+
+.notification-item:hover {
+  background-color: var(--bg-app);
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.notification-icon-wrapper.intake {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.notification-icon-wrapper.checkout {
+  background-color: var(--danger-bg);
+  color: var(--danger);
+}
+
+.notification-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  text-align: left;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.notification-text strong {
+  font-weight: 600;
+}
+
+.notification-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+
+.notification-time {
+  font-weight: 500;
+}
+
+.notification-notes {
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+
+.notifications-dropdown-footer {
+  padding: 12px 16px;
+  text-align: center;
+  border-top: 1px solid var(--border);
+  background-color: var(--bg-app);
+}
+
+.notifications-dropdown-footer button {
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.2s ease;
+}
+
+.notifications-dropdown-footer button:hover {
+  background-color: var(--primary-light);
+  color: var(--primary-hover);
+}
+
+.notifications-empty {
+  padding: 36px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 
