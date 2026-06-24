@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { dbService, getStockStatus } from '../db/dbService';
 import type { Material, Transaction, UserProfile } from '../db/dbService';
+import { supabase, isSupabaseConfigured } from '../db/supabaseClient';
 import { MaterialForm } from './MaterialForm';
 import { QRScanner } from './QRScanner';
 
@@ -131,6 +132,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  // Listen to realtime updates from Supabase
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    const channel = supabase!
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'transactions' },
+        async (payload) => {
+          console.log('Realtime transaction update received:', payload);
+          try {
+            const txs = await dbService.getTransactions();
+            setTransactions(txs);
+          } catch (err) {
+            console.error('Failed to load transactions via realtime:', err);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'materials' },
+        async (payload) => {
+          console.log('Realtime material update received:', payload);
+          try {
+            const mats = await dbService.getMaterials();
+            setMaterials(mats);
+          } catch (err) {
+            console.error('Failed to load materials via realtime:', err);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase!.removeChannel(channel);
+    };
   }, []);
 
   // Handle Material Addition
