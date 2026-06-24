@@ -6,17 +6,18 @@ interface MaterialFormProps {
   onSave: (material: Omit<Material, 'qr_code_url'>) => Promise<void>;
   onCancel: () => void;
   existingIds: string[];
+  initialData?: Material | null;
 }
 
-export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, existingIds }) => {
-  const [id, setId] = useState('');
-  const [name, setName] = useState('');
-  const [quantity, setQuantity] = useState<number>(0);
-  const [maxQuantity, setMaxQuantity] = useState<number>(10);
-  const [unit, setUnit] = useState('db');
-  const [category, setCategory] = useState('Permetszerek');
-  const [location, setLocation] = useState('A1-01-01');
-  const [imageUrl, setImageUrl] = useState('');
+export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, existingIds, initialData = null }) => {
+  const [id, setId] = useState(initialData ? initialData.id : '');
+  const [name, setName] = useState(initialData ? initialData.name : '');
+  const [quantity, setQuantity] = useState<number>(initialData ? initialData.quantity : 0);
+  const [maxQuantity, setMaxQuantity] = useState<number>(initialData ? initialData.max_quantity : 10);
+  const [unit, setUnit] = useState(initialData ? initialData.unit : 'db');
+  const [category, setCategory] = useState(initialData ? initialData.category : 'Permetszerek');
+  const [location, setLocation] = useState(initialData ? initialData.location : 'A1-01-01');
+  const [imageUrl, setImageUrl] = useState(initialData ? initialData.image_url : '');
   
   // Camera capture states
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -35,41 +36,45 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
     setCategory(cat);
     
     // Auto-suggest next ID based on category prefix
-    const prefix = cat === 'Permetszerek' ? 'PRM'
-                 : cat === 'Műtrágyák' ? 'MUT'
-                 : cat === 'Vetőmagok' ? 'VET'
-                 : cat === 'Tápok' ? 'TAP'
-                 : cat === 'Adalékanyagok' ? 'ADL'
-                 : 'EGY';
-    
-    // Find highest index in existing IDs for this prefix
-    const pattern = new RegExp(`^${prefix}-(\\d+)$`);
-    let maxNum = 0;
-    
-    for (const curId of existingIds) {
-      const match = curId.match(pattern);
-      if (match) {
-        const num = parseInt(match[1], 10);
-        if (num > maxNum) maxNum = num;
+    if (!initialData) {
+      const prefix = cat === 'Permetszerek' ? 'PRM'
+                   : cat === 'Műtrágyák' ? 'MUT'
+                   : cat === 'Vetőmagok' ? 'VET'
+                   : cat === 'Tápok' ? 'TAP'
+                   : cat === 'Adalékanyagok' ? 'ADL'
+                   : 'EGY';
+      
+      // Find highest index in existing IDs for this prefix
+      const pattern = new RegExp(`^${prefix}-(\\d+)$`);
+      let maxNum = 0;
+      
+      for (const curId of existingIds) {
+        const match = curId.match(pattern);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
       }
-    }
-    
-    const nextNum = String(maxNum + 1).padStart(3, '0');
-    setId(`${prefix}-${nextNum}`);
+      
+      const nextNum = String(maxNum + 1).padStart(3, '0');
+      setId(`${prefix}-${nextNum}`);
 
-    // Auto-adjust unit defaults
-    if (cat === 'Permetszerek' || cat === 'Adalékanyagok') {
-      setUnit('l');
-    } else if (cat === 'Műtrágyák' || cat === 'Tápok' || cat === 'Vetőmagok') {
-      setUnit('kg');
-    } else {
-      setUnit('db');
+      // Auto-adjust unit defaults
+      if (cat === 'Permetszerek' || cat === 'Adalékanyagok') {
+        setUnit('l');
+      } else if (cat === 'Műtrágyák' || cat === 'Tápok' || cat === 'Vetőmagok') {
+        setUnit('kg');
+      } else {
+        setUnit('db');
+      }
     }
   };
 
   // Run on category select on mount to assign initial suggested ID
   React.useEffect(() => {
-    handleCategoryChange(category);
+    if (!initialData) {
+      handleCategoryChange(category);
+    }
   }, []);
 
   // CAMERA SNAPSHOT MANAGEMENT
@@ -146,7 +151,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
       return;
     }
 
-    if (existingIds.includes(id)) {
+    if (!initialData && existingIds.includes(id)) {
       setErrorMessage(`Már létezik anyag ezzel az azonosítóval: ${id}`);
       return;
     }
@@ -185,7 +190,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
         <div className="modal-header">
           <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Sprout size={20} className="mobile-action-btn-icon" />
-            <span>Új anyag felvétele</span>
+            <span>{initialData ? 'Anyag szerkesztése' : 'Új anyag felvétele'}</span>
           </div>
           <button onClick={onCancel} aria-label="Bezárás">
             <X size={20} />
@@ -237,6 +242,8 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
                   id="mId"
                   type="text"
                   required
+                  disabled={!!initialData}
+                  style={{ opacity: initialData ? 0.7 : 1, cursor: initialData ? 'not-allowed' : 'text' }}
                   className="form-input-text"
                   placeholder="pl. PRM-001"
                   value={id}
@@ -389,7 +396,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
               Mégsem
             </button>
             <button type="submit" className="btn-primary" style={{ width: 'auto', paddingInline: '24px' }} disabled={isSubmitting}>
-              {isSubmitting ? 'Mentés...' : 'Termék mentése'}
+              {isSubmitting ? 'Mentés...' : (initialData ? 'Módosítások mentése' : 'Termék mentése')}
             </button>
           </div>
         </form>

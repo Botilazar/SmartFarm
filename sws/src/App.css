@@ -1367,6 +1367,10 @@ input:focus, select:focus, textarea:focus {
   gap: 12px;
 }
 
+.modal-footer button {
+  width: auto !important;
+}
+
 /* Material form styles */
 .form-row {
   display: grid;

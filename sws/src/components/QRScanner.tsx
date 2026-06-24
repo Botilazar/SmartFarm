@@ -10,7 +10,7 @@ interface QRScannerProps {
 export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) => {
   const [scanError, setScanError] = useState<string | null>(null);
   const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
-  const [selectedCameraId, setSelectedCameraId] = useState<string>('');
+  const [selectedCameraId, setSelectedCameraId] = useState<string>('environment');
   const [isScanning, setIsScanning] = useState(false);
   const [manualId, setManualId] = useState('');
   const [showManual, setShowManual] = useState(false);
@@ -20,23 +20,55 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
 
   // Request cameras on load
   useEffect(() => {
-    Html5Qrcode.getCameras()
-      .then((devices) => {
+    const requestCameraPermissionAndGetDevices = async () => {
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          // Stop stream tracks immediately to free the camera
+          stream.getTracks().forEach(track => track.stop());
+        }
+      } catch (err) {
+        console.warn('Initial camera permission request failed or rejected:', err);
+      }
+
+      try {
+        const devices = await Html5Qrcode.getCameras();
         if (devices && devices.length > 0) {
           setCameras(devices);
-          // Prefer back camera if available
-          const backCam = devices.find((d) => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
-          setSelectedCameraId(backCam ? backCam.id : devices[0].id);
+          // Prefer back camera if available (checking English and Hungarian terms)
+          const backCam = devices.find((d) => {
+            const label = d.label.toLowerCase();
+            return (
+              label.includes('back') || 
+              label.includes('environment') || 
+              label.includes('rear') ||
+              label.includes('hátsó') ||
+              label.includes('hátlap') ||
+              label.includes('hátulsó')
+            );
+          });
+          if (backCam) {
+            setSelectedCameraId(backCam.id);
+          } else {
+            // Default to 'environment' (facingMode: "environment") to let the OS choose the rear camera automatically
+            setSelectedCameraId('environment');
+          }
         } else {
           setScanError('Nem található kamera. Kérjük, használd a manuális kódbevitelt.');
           setShowManual(true);
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('Error getting cameras:', err);
-        setScanError('Hiba a kamerák keresése közben. Használhatod a manuális bevitelt.');
+        if (!window.isSecureContext) {
+          setScanError('Kamera hozzáférés hiba: A böngészők biztonsági okokból csak biztonságos (HTTPS vagy localhost) kapcsolaton engedélyezik a kamerát. Használj HTTPS-t (pl. localtunnel/ngrok) vagy a manuális bevitelt!');
+        } else {
+          setScanError('Hiba a kamerák keresése közben. Használhatod a manuális bevitelt.');
+        }
         setShowManual(true);
-      });
+      }
+    };
+
+    requestCameraPermissionAndGetDevices();
 
     return () => {
       stopScanning();
@@ -60,7 +92,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
 
       setIsScanning(true);
       await html5QrCode.start(
-        cameraId,
+        cameraId === 'environment' ? { facingMode: "environment" } : cameraId,
         {
           fps: 10,
           qrbox: { width: 220, height: 220 },
@@ -142,6 +174,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
                     value={selectedCameraId}
                     onChange={(e) => setSelectedCameraId(e.target.value)}
                   >
+                    <option value="environment">Hátsó kamera (Alapértelmezett)</option>
                     {cameras.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.label || `Kamera ${cameras.indexOf(c) + 1}`}

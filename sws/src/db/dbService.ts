@@ -401,6 +401,33 @@ export const dbService = {
     return data;
   },
 
+  // UPDATE MATERIAL (Admin function)
+  updateMaterial: async (id: string, updates: Omit<Material, 'id' | 'qr_code_url' | 'created_at'>): Promise<Material> => {
+    if (dbService.isMockMode()) {
+      const mats = getLocalMaterials();
+      const idx = mats.findIndex(m => m.id === id);
+      if (idx === -1) throw new Error(`Nem található anyag: ${id}`);
+      
+      const updatedMaterial: Material = {
+        ...mats[idx],
+        ...updates,
+      };
+      mats[idx] = updatedMaterial;
+      saveLocalMaterials(mats);
+      return updatedMaterial;
+    }
+
+    const { data, error } = await supabase!
+      .from('materials')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   // UPDATE MATERIAL QUANTITY (Checkout / Intake)
   updateMaterialQuantity: async (id: string, newQty: number): Promise<Material> => {
     if (dbService.isMockMode()) {
@@ -488,5 +515,44 @@ export const dbService = {
 
     if (error) throw error;
     return data;
+  },
+
+  // FETCH USER PROFILES
+  getUserProfiles: async (): Promise<UserProfile[]> => {
+    if (dbService.isMockMode()) {
+      const savedUsersJson = localStorage.getItem(STORAGE_KEYS.USERS);
+      const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
+      // Combine with the default mock users if they are not already there
+      const defaultUsers: UserProfile[] = [
+        { id: '1', name: 'Kovács Gábor', email: 'kovacs.gabor@ceg.hu', role: 'admin' },
+        { id: '2', name: 'Kezelő János', email: 'kezelo.janos@ceg.hu', role: 'operator' },
+      ];
+      
+      const combined = [...defaultUsers];
+      savedUsers.forEach((u: any) => {
+        if (!combined.some(c => c.email === u.email)) {
+          combined.push({
+            id: u.id || Math.random().toString(36).substring(2, 9),
+            name: u.name,
+            email: u.email,
+            role: u.role,
+          });
+        }
+      });
+      return combined;
+    }
+
+    const { data, error } = await supabase!
+      .from('profiles')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return (data || []).map((u: any) => ({
+      id: u.id,
+      email: u.email,
+      name: u.name || 'Névtelen Felhasználó',
+      role: u.role === 'admin' ? 'admin' : 'operator',
+    }));
   }
 };
