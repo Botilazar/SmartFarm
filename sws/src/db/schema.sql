@@ -54,7 +54,26 @@ USING (true)
 WITH CHECK (true);
 
 CREATE POLICY "Allow all actions for profiles"
-ON public.profiles FOR ALL
-TO authenticated
-USING (true)
-WITH CHECK (true);
+  ON public.profiles FOR ALL
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- Create a trigger to automatically create a profile for new users
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, name, role)
+  VALUES (
+    new.id,
+    new.email,
+    COALESCE(new.raw_user_meta_data->>'name', 'Új Felhasználó'),
+    COALESCE(new.raw_user_meta_data->>'role', 'operator')
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
