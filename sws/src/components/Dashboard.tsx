@@ -6,7 +6,7 @@ import {
   MapPin, ChevronRight, RefreshCw, Printer, X, AlertCircle
 } from 'lucide-react';
 import { dbService, getStockStatus } from '../db/dbService';
-import type { Material, Transaction } from '../db/dbService';
+import type { Material, Transaction, UserProfile } from '../db/dbService';
 import { MaterialForm } from './MaterialForm';
 import { QRScanner } from './QRScanner';
 
@@ -24,6 +24,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   // Data states
   const [materials, setMaterials] = useState<Material[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [_loading, setLoading] = useState(true);
   
   // Interaction states
@@ -62,8 +63,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       await dbService.init();
       const mats = await dbService.getMaterials();
       const txs = await dbService.getTransactions();
+      const usrs = await dbService.getUserProfiles();
       setMaterials(mats);
       setTransactions(txs);
+      setUsers(usrs);
     } catch (err) {
       console.error('Failed to load data:', err);
     } finally {
@@ -865,18 +868,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td style={{ fontWeight: 600 }}>Kovács Gábor</td>
-                        <td>kovacs.gabor@ceg.hu</td>
-                        <td>Raktárvezető (Admin)</td>
-                        <td><span style={{ color: 'var(--success)', fontWeight: 600 }}>Aktív</span></td>
-                      </tr>
-                      <tr>
-                        <td style={{ fontWeight: 600 }}>Kezelő János</td>
-                        <td>kezelo.janos@ceg.hu</td>
-                        <td>Kezelő</td>
-                        <td><span style={{ color: 'var(--success)', fontWeight: 600 }}>Aktív</span></td>
-                      </tr>
+                      {users.map((u) => (
+                        <tr key={u.id}>
+                          <td style={{ fontWeight: 600 }}>{u.name}</td>
+                          <td>{u.email}</td>
+                          <td>{u.role === 'admin' ? 'Raktárvezető (Admin)' : 'Kezelő'}</td>
+                          <td><span style={{ color: 'var(--success)', fontWeight: 600 }}>Aktív</span></td>
+                        </tr>
+                      ))}
+                      {users.length === 0 && (
+                        <tr>
+                          <td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
+                            Nem található felhasználó.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>

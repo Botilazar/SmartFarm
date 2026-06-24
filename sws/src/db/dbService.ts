@@ -488,5 +488,44 @@ export const dbService = {
 
     if (error) throw error;
     return data;
+  },
+
+  // FETCH USER PROFILES
+  getUserProfiles: async (): Promise<UserProfile[]> => {
+    if (dbService.isMockMode()) {
+      const savedUsersJson = localStorage.getItem(STORAGE_KEYS.USERS);
+      const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
+      // Combine with the default mock users if they are not already there
+      const defaultUsers: UserProfile[] = [
+        { id: '1', name: 'Kovács Gábor', email: 'kovacs.gabor@ceg.hu', role: 'admin' },
+        { id: '2', name: 'Kezelő János', email: 'kezelo.janos@ceg.hu', role: 'operator' },
+      ];
+      
+      const combined = [...defaultUsers];
+      savedUsers.forEach((u: any) => {
+        if (!combined.some(c => c.email === u.email)) {
+          combined.push({
+            id: u.id || Math.random().toString(36).substring(2, 9),
+            name: u.name,
+            email: u.email,
+            role: u.role,
+          });
+        }
+      });
+      return combined;
+    }
+
+    const { data, error } = await supabase!
+      .from('profiles')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return (data || []).map((u: any) => ({
+      id: u.id,
+      email: u.email,
+      name: u.name || 'Névtelen Felhasználó',
+      role: u.role === 'admin' ? 'admin' : 'operator',
+    }));
   }
 };
