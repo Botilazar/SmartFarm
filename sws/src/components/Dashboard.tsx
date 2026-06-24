@@ -54,6 +54,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const desktopNotificationsRef = useRef<HTMLDivElement>(null);
   const mobileNotificationsRef = useRef<HTMLDivElement>(null);
 
+  // Toast states
+  const [toast, setToast] = useState<Transaction | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
+  const toastTimerRef = useRef<{ hide: any; remove: any }>({ hide: null, remove: null });
+  const isInitialLoadRef = useRef(true);
+  const prevTransactionsRef = useRef<Transaction[]>([]);
+
   // Selected material for transaction (Checkout / Intake)
   const [transactionMaterial, setTransactionMaterial] = useState<Material | null>(null);
 
@@ -110,6 +117,56 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Trigger toast helper
+  const triggerToast = (tx: Transaction) => {
+    if (toastTimerRef.current.hide) clearTimeout(toastTimerRef.current.hide);
+    if (toastTimerRef.current.remove) clearTimeout(toastTimerRef.current.remove);
+
+    // Set content first (container is already in DOM)
+    setToast(tx);
+    
+    // Add visible class in next frame for transition on enter
+    setTimeout(() => {
+      setToastVisible(true);
+    }, 50);
+
+    toastTimerRef.current.hide = setTimeout(() => {
+      setToastVisible(false);
+    }, 3050);
+
+    toastTimerRef.current.remove = setTimeout(() => {
+      setToast(null);
+    }, 3400);
+  };
+
+  // Listen to new transactions to show toast
+  useEffect(() => {
+    if (transactions.length > 0) {
+      if (isInitialLoadRef.current) {
+        prevTransactionsRef.current = transactions;
+        isInitialLoadRef.current = false;
+        return;
+      }
+
+      if (transactions.length > prevTransactionsRef.current.length) {
+        const newestTx = transactions[0];
+        const timeDiff = Date.now() - new Date(newestTx.timestamp).getTime();
+        if (timeDiff < 15000) {
+          triggerToast(newestTx);
+        }
+      }
+      prevTransactionsRef.current = transactions;
+    }
+  }, [transactions]);
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current.hide) clearTimeout(toastTimerRef.current.hide);
+      if (toastTimerRef.current.remove) clearTimeout(toastTimerRef.current.remove);
+    };
   }, []);
 
   // Fetch data
@@ -816,6 +873,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           }}
         />
       )}
+
+      {/* Realtime Toast Notification */}
+      <div 
+        className={`realtime-toast ${toast ? toast.type : ''} ${toast && toastVisible ? 'visible' : 'exit'}`} 
+        onClick={() => {
+          if (!toast) return;
+          if (isMobile) {
+            setMobileTab('movements');
+          } else {
+            setActiveView('movements');
+          }
+          setToastVisible(false);
+        }}
+      >
+        {toast && (
+          <>
+            <div className={`toast-icon-wrapper ${toast.type}`}>
+              {toast.type === 'intake' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
+            </div>
+            <div className="toast-content">
+              <span className="toast-title">Készletmozgás történt!</span>
+              <span className="toast-desc">
+                <strong>{toast.user_name}</strong> {toast.type === 'intake' ? 'bevételezett' : 'kiadott'} {Math.abs(toast.quantity)} db <strong>{toast.material_name}</strong> terméket.
+              </span>
+            </div>
+          </>
+        )}
+      </div>
     </>
   );
 };

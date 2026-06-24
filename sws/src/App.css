@@ -1786,5 +1786,109 @@ input:focus, select:focus, textarea:focus {
   font-size: 13px;
 }
 
+/* Realtime Toast Notification Styles */
+.realtime-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  background-color: var(--bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 9999;
+  max-width: 400px;
+  cursor: pointer;
+  transform: translateX(120%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.realtime-toast.visible {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.realtime-toast.exit {
+  transform: translateX(120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.realtime-toast.intake {
+  border-left: 4px solid var(--success);
+}
+
+.realtime-toast.checkout {
+  border-left: 4px solid var(--danger);
+}
+
+.toast-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.toast-icon-wrapper.intake {
+  background-color: var(--success-bg);
+  color: var(--success);
+}
+
+.toast-icon-wrapper.checkout {
+  background-color: var(--danger-bg);
+  color: var(--danger);
+}
+
+.toast-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+}
+
+.toast-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.toast-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Toast Mobile Responsiveness */
+@media (max-width: 768px) {
+  .realtime-toast {
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    max-width: none;
+    transform: translateY(-150%);
+    pointer-events: none;
+  }
+
+  .realtime-toast.visible {
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .realtime-toast.exit {
+    transform: translateY(-150%);
+    pointer-events: none;
+  }
+}
+
+
 
 
