@@ -1480,3 +1480,107 @@ input:focus, select:focus, textarea:focus {
     display: none !important;
   }
 }
+
+/* Green Top Header Styles (Desktop) */
+.desktop-header {
+  background-color: var(--primary) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+.desktop-header .search-input {
+  background-color: var(--bg-card) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: var(--text-primary) !important;
+}
+
+.desktop-header .search-input::placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.8;
+}
+
+.desktop-header .search-input:focus {
+  border-color: white !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2) !important;
+}
+
+.desktop-header .btn-secondary {
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.desktop-header .btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border-color: white !important;
+}
+
+.desktop-header .icon-btn-badge {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.desktop-header .icon-btn-badge:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+}
+
+.desktop-header .badge-dot {
+  border-color: var(--primary) !important;
+}
+
+.desktop-header .profile-name {
+  color: white !important;
+}
+
+.desktop-header .profile-role {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.desktop-header .profile-dropdown-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.desktop-header .logout-btn {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.desktop-header .logout-btn:hover {
+  color: #ffb3b3 !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Vertical alignment override for search icon in search bar */
+.search-bar-wrapper .input-icon {
+  position: absolute !important;
+  left: 14px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+  color: var(--text-secondary) !important;
+}
+
+/* Green Sidebar Header Styles (Desktop) */
+.sidebar-header {
+  background-color: var(--primary) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-right: none !important;
+  height: 70px !important;
+  padding: 0 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  position: relative !important;
+  z-index: 2 !important;
+  margin-right: -1px !important;
+  width: calc(100% + 1px) !important;
+  box-sizing: border-box !important;
+}
+
+.sidebar-header-logo {
+  color: white !important;
+}
+
+.sidebar-header .brand-name {
+  color: white !important;
+}
+
+
+

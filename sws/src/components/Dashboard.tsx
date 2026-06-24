@@ -514,7 +514,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         {/* Sidebar */}
         <aside className="desktop-sidebar">
           <div className="sidebar-header">
-            <Sprout className="sidebar-footer-logo" size={32} />
+            <Sprout className="sidebar-header-logo" size={32} />
             <h1 className="brand-name" style={{ margin: 0, fontSize: '20px' }}>SmartFarm</h1>
           </div>
 
@@ -584,7 +584,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           {/* Topbar Header */}
           <header className="desktop-header">
             <div className="search-bar-wrapper">
-              <Search className="input-icon" size={18} style={{ left: '14px' }} />
+              <Search className="input-icon" size={18} />
               <input 
                 type="text" 
                 className="search-input" 
@@ -595,7 +595,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                   if (activeView !== 'materials') setActiveView('materials');
                 }}
               />
-              <span className="search-shortcut">⌘ K</span>
             </div>
 
             <div className="header-actions">
@@ -626,8 +625,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
               </div>
 
               <button 
-                className="icon-btn-badge" 
-                style={{ color: 'var(--danger)' }} 
+                className="icon-btn-badge logout-btn" 
                 title="Kijelentkezés"
                 onClick={onLogout}
               >
