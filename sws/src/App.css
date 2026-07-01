@@ -1603,6 +1603,7 @@ input:focus, select:focus, textarea:focus {
   position: relative;
   display: inline-flex;
   align-items: center;
+  margin-right: -8px !important;
 }
 
 .notifications-dropdown {

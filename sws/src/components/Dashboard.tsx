@@ -417,7 +417,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
             <div className="header-actions">
               <button
                 className="btn-secondary"
-                style={{ width: '130px', height: '38px', padding: '0 12px', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexShrink: 0 }}
+                style={{ 
+                  width: 'auto', 
+                  minWidth: '130px', 
+                  height: '38px', 
+                  padding: '0 16px', 
+                  fontSize: '13px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  gap: '6px', 
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap'
+                }}
                 onClick={() => setShowScanner(true)}
               >
                 <QrCode size={16} />
