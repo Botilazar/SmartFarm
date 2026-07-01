@@ -10,7 +10,7 @@ interface QRScannerProps {
 export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) => {
   const [scanError, setScanError] = useState<string | null>(null);
   const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
-  const [selectedCameraId, setSelectedCameraId] = useState<string>('environment');
+  const [selectedCameraId, setSelectedCameraId] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
   const [manualId, setManualId] = useState('');
   const [showManual, setShowManual] = useState(false);
@@ -44,15 +44,14 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
               label.includes('rear') ||
               label.includes('hátsó') ||
               label.includes('hátlap') ||
-              label.includes('hátulsó')
+              label.includes('hátulsó') ||
+              label.includes('kamera 1') ||
+              label.includes('camera 1')
             );
           });
-          if (backCam) {
-            setSelectedCameraId(backCam.id);
-          } else {
-            // Default to 'environment' (facingMode: "environment") to let the OS choose the rear camera automatically
-            setSelectedCameraId('environment');
-          }
+          // Fallback: usually the last camera in the list is the rear camera on mobile devices.
+          // Otherwise, if only one, choose the first.
+          setSelectedCameraId(backCam ? backCam.id : devices[devices.length - 1].id);
         } else {
           setScanError('Nem található kamera. Kérjük, használd a manuális kódbevitelt.');
           setShowManual(true);
@@ -92,7 +91,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
 
       setIsScanning(true);
       await html5QrCode.start(
-        cameraId === 'environment' ? { facingMode: "environment" } : cameraId,
+        cameraId,
         {
           fps: 10,
           qrbox: { width: 220, height: 220 },
@@ -174,7 +173,6 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
                     value={selectedCameraId}
                     onChange={(e) => setSelectedCameraId(e.target.value)}
                   >
-                    <option value="environment">Hátsó kamera (Alapértelmezett)</option>
                     {cameras.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.label || `Kamera ${cameras.indexOf(c) + 1}`}
