@@ -5,9 +5,11 @@ import { supabase, isSupabaseConfigured } from './db/supabaseClient';
 import './App.css';
 
 interface UserSession {
+  id: string;
   name: string;
   email: string;
   role: 'admin' | 'operator';
+  avatar_url?: string;
 }
 
 function App() {
@@ -22,15 +24,17 @@ function App() {
     try {
       const { data, error } = await supabase!
         .from('profiles')
-        .select('name, role')
+        .select('name, role, avatar_url')
         .eq('id', supabaseUser.id)
         .maybeSingle();
         
       if (!error && data) {
         return {
+          id: supabaseUser.id,
           name: data.name || metadataName,
           email: supabaseUser.email || '',
-          role: data.role === 'admin' ? 'admin' : 'operator'
+          role: data.role === 'admin' ? 'admin' : 'operator',
+          avatar_url: data.avatar_url || undefined
         };
       }
     } catch (err) {
@@ -38,6 +42,7 @@ function App() {
     }
     
     return {
+      id: supabaseUser.id,
       name: metadataName,
       email: supabaseUser.email || '',
       role: metadataRole === 'admin' ? 'admin' : 'operator'
@@ -97,6 +102,16 @@ function App() {
     };
   }, []);
 
+  const handleUserUpdate = (updatedUser: Partial<UserSession>) => {
+    if (currentUser) {
+      const newUser = { ...currentUser, ...updatedUser };
+      setCurrentUser(newUser);
+      if (!isSupabaseConfigured) {
+        localStorage.setItem('smartfarm_current_user', JSON.stringify(newUser));
+      }
+    }
+  };
+
   const handleLogin = (user: UserSession) => {
     setCurrentUser(user);
     if (!isSupabaseConfigured) {
@@ -140,7 +155,7 @@ function App() {
       {currentUser === null ? (
         <Login onLogin={handleLogin} />
       ) : (
-        <Dashboard user={currentUser} onLogout={handleLogout} />
+        <Dashboard user={currentUser} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
       )}
     </>
   );

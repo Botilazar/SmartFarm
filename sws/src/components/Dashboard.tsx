@@ -22,11 +22,12 @@ import { QrPrintModal } from './QrPrintModal';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 
 interface DashboardProps {
-  user: { name: string; email: string; role: 'admin' | 'operator' };
+  user: { id: string; name: string; email: string; role: 'admin' | 'operator'; avatar_url?: string };
   onLogout: () => void;
+  onUserUpdate?: (updatedUser: Partial<{ id: string; name: string; email: string; role: 'admin' | 'operator'; avatar_url?: string }>) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpdate }) => {
   // Navigation states
   const [activeView, setActiveView] = useState<'dashboard' | 'materials' | 'movements' | 'qr-codes' | 'users' | 'settings'>('dashboard');
   const [mobileTab, setMobileTab] = useState<'home' | 'search' | 'qr' | 'movements' | 'profile'>('home');
@@ -490,9 +491,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 )}
               </div>
 
-              <div className="profile-dropdown-btn">
+              <div className="profile-display">
                 <img
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=006837&color=fff`}
+                  src={user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=006837&color=fff`}
                   alt={user.name}
                   className="profile-avatar"
                 />
@@ -556,7 +557,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
               <UsersView users={users} />
             )}
             {activeView === 'settings' && (
-              <SettingsView isMock={isMock} />
+              <SettingsView isMock={isMock} user={user} onUserUpdate={onUserUpdate} />
             )}
           </main>
         </div>
@@ -722,9 +723,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           {mobileTab === 'profile' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', textAlign: 'center', paddingTop: '20px' }}>
               <img
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=006837&color=fff&size=128`}
+                src={user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=006837&color=fff&size=128`}
                 alt={user.name}
-                style={{ width: '96px', height: '96px', borderRadius: '50%', border: '3px solid var(--primary)', boxShadow: 'var(--shadow-md)' }}
+                style={{ width: '96px', height: '96px', borderRadius: '50%', border: '3px solid var(--primary)', boxShadow: 'var(--shadow-md)', objectFit: 'cover' }}
               />
               <div>
                 <h3 style={{ fontSize: '18px', fontWeight: 700 }}>{user.name}</h3>

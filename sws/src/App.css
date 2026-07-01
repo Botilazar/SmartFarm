@@ -478,16 +478,12 @@ input:focus, select:focus, textarea:focus {
   font-weight: 700;
 }
 
-.profile-dropdown-btn {
+.profile-display {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 4px 8px;
   border-radius: var(--radius-sm);
-}
-
-.profile-dropdown-btn:hover {
-  background-color: var(--bg-app);
 }
 
 .profile-avatar {
@@ -1549,9 +1545,6 @@ input:focus, select:focus, textarea:focus {
   color: rgba(255, 255, 255, 0.75) !important;
 }
 
-.desktop-header .profile-dropdown-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-}
 
 .desktop-header .logout-btn {
   color: rgba(255, 255, 255, 0.9) !important;
