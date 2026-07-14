@@ -16,6 +16,7 @@ interface DashboardOverviewProps {
   setShowNewMaterialModal?: (m: boolean) => void;
   setMobileTab?: (t: 'home' | 'search' | 'qr' | 'movements' | 'profile') => void;
   onMobileStockCardClick?: (materialId: string) => void;
+  loading?: boolean;
 }
 
 const categoryColors: { [key: string]: string } = {
@@ -35,7 +36,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   setShowScanner,
   setShowNewMaterialModal,
   setMobileTab,
-  onMobileStockCardClick
+  onMobileStockCardClick,
+  loading = false
 }) => {
   const { t, language } = useTranslation();
   const [selectedNotes, setSelectedNotes] = React.useState<string | null>(null);
@@ -221,7 +223,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               <span className="mobile-stat-title">{t('cardTotalMaterials')}</span>
               <div className="mobile-stat-icon green"><Package size={16} /></div>
             </div>
-            <div className="mobile-stat-value">{totalMaterialsCount}</div>
+            <div className="mobile-stat-value">{loading ? <span className="skeleton-loader skeleton-number" /> : totalMaterialsCount}</div>
             <span className="mobile-stat-desc" style={{ color: 'var(--success)' }}>+5 {t('comparedToLastWeek')}</span>
           </div>
 
@@ -230,7 +232,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               <span className="mobile-stat-title">{t('cardLowStock')}</span>
               <div className="mobile-stat-icon red"><ShieldAlert size={16} /></div>
             </div>
-            <div className="mobile-stat-value" style={{ color: 'var(--danger)' }}>{lowStockCount}</div>
+            <div className="mobile-stat-value" style={{ color: 'var(--danger)' }}>{loading ? <span className="skeleton-loader skeleton-number" /> : lowStockCount}</div>
             <span className="mobile-stat-desc" style={{ color: 'var(--warning)' }}>+3 {t('comparedToLastWeek')}</span>
           </div>
 
@@ -239,7 +241,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               <span className="mobile-stat-title">{t('cardTodayMovements')}</span>
               <div className="mobile-stat-icon green"><ArrowLeftRight size={16} /></div>
             </div>
-            <div className="mobile-stat-value">{transactionsToday}</div>
+            <div className="mobile-stat-value">{loading ? <span className="skeleton-loader skeleton-number" /> : transactionsToday}</div>
             <span className="mobile-stat-desc" style={{ color: 'var(--success)' }}>+8 {t('comparedToYesterday')}</span>
           </div>
         </div>
@@ -275,36 +277,54 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         </div>
 
         <div className="mobile-stock-list" style={{ marginBottom: '24px' }}>
-          {criticalStockItems.map((m) => {
-            const status = getStockStatus(m.quantity, m.max_quantity);
-            const pct = Math.round((m.quantity / m.max_quantity) * 100);
-            return (
-              <div 
-                key={m.id} 
-                className="mobile-stock-card"
-                style={{ padding: '12px' }}
-                onClick={() => onMobileStockCardClick && onMobileStockCardClick(m.id)}
-              >
+          {loading ? (
+            Array.from({ length: 3 }).map((_, idx) => (
+              <div key={`sk-crit-${idx}`} className="mobile-stock-card" style={{ padding: '12px' }}>
                 <div className="mobile-stock-card-left">
-                  {m.image_url ? (
-                    <img src={m.image_url} alt={m.name} style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }} />
-                  ) : (
-                    <div style={{ width: '40px', height: '40px', borderRadius: '4px', backgroundColor: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-                      <Package size={20} />
-                    </div>
-                  )}
+                  <div className="skeleton-loader" style={{ width: '40px', height: '40px', borderRadius: '4px' }} />
                   <div className="mobile-stock-info">
-                    <h4 style={{ fontSize: '13px' }}>{m.name}</h4>
-                    <p style={{ fontSize: '10px' }}>{t('statId')}: {m.id} • {t('statLocation')}: {m.location}</p>
+                    <div className="skeleton-loader skeleton-text" style={{ width: '120px', marginBottom: '6px' }} />
+                    <div className="skeleton-loader skeleton-text" style={{ width: '80px', height: '12.5px' }} />
                   </div>
                 </div>
                 <div className="mobile-stock-card-right">
-                  <span className={`mobile-stock-qty ${status}`} style={{ fontSize: '13px' }}>{m.quantity} {m.unit}</span>
-                  <span className="pct-badge" style={{ fontSize: '10px', margin: 0 }}>{pct}%</span>
+                  <div className="skeleton-loader skeleton-badge" style={{ width: '50px', height: '18px', marginBottom: '4px' }} />
+                  <div className="skeleton-loader skeleton-badge" style={{ width: '30px', height: '12.5px' }} />
                 </div>
               </div>
-            );
-          })}
+            ))
+          ) : (
+            criticalStockItems.map((m) => {
+              const status = getStockStatus(m.quantity, m.max_quantity);
+              const pct = Math.round((m.quantity / m.max_quantity) * 100);
+              return (
+                <div 
+                  key={m.id} 
+                  className="mobile-stock-card"
+                  style={{ padding: '12px' }}
+                  onClick={() => onMobileStockCardClick && onMobileStockCardClick(m.id)}
+                >
+                  <div className="mobile-stock-card-left">
+                    {m.image_url ? (
+                      <img src={m.image_url} alt={m.name} style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '40px', height: '40px', borderRadius: '4px', backgroundColor: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                        <Package size={20} />
+                      </div>
+                    )}
+                    <div className="mobile-stock-info">
+                      <h4 style={{ fontSize: '13px' }}>{m.name}</h4>
+                      <p style={{ fontSize: '10px' }}>{t('statId')}: {m.id} • {t('statLocation')}: {m.location}</p>
+                    </div>
+                  </div>
+                  <div className="mobile-stock-card-right">
+                    <span className={`mobile-stock-qty ${status}`} style={{ fontSize: '13px' }}>{m.quantity} {m.unit}</span>
+                    <span className="pct-badge" style={{ fontSize: '10px', margin: 0 }}>{pct}%</span>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Mobile recent movements list */}
@@ -316,27 +336,45 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         </div>
 
         <div className="mobile-stock-list">
-          {transactions.slice(0, 3).map((tItem) => (
-            <div key={tItem.id} className="mobile-stock-card" style={{ padding: '12px' }}>
-              <div className="mobile-stock-card-left">
-                <div className={`movement-icon-wrapper ${tItem.type}`} style={{ width: '28px', height: '28px' }}>
-                  {tItem.type === 'intake' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+          {loading ? (
+            Array.from({ length: 3 }).map((_, idx) => (
+              <div key={`sk-mov-${idx}`} className="mobile-stock-card" style={{ padding: '12px' }}>
+                <div className="mobile-stock-card-left">
+                  <div className="skeleton-loader" style={{ width: '28px', height: '28px', borderRadius: '50%' }} />
+                  <div className="mobile-stock-info">
+                    <div className="skeleton-loader skeleton-text" style={{ width: '100px', marginBottom: '6px' }} />
+                    <div className="skeleton-loader skeleton-text" style={{ width: '60px', height: '12.5px' }} />
+                  </div>
                 </div>
-                <div className="mobile-stock-info">
-                  <h4 style={{ fontSize: '12px' }}>{tItem.material_name}</h4>
-                  <p style={{ fontSize: '10px' }}>{tItem.user_name}</p>
+                <div className="mobile-stock-card-right">
+                  <div className="skeleton-loader skeleton-badge" style={{ width: '40px', height: '16px', marginBottom: '4px' }} />
+                  <div className="skeleton-loader skeleton-badge" style={{ width: '30px', height: '12.5px' }} />
                 </div>
               </div>
-              <div className="mobile-stock-card-right">
-                <span className={`movement-qty ${tItem.type}`} style={{ fontSize: '12px' }}>
-                  {tItem.quantity > 0 ? `+${tItem.quantity}` : tItem.quantity}
-                </span>
-                <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-                  {getLocaleTimeString(tItem.timestamp)}
-                </span>
+            ))
+          ) : (
+            transactions.slice(0, 3).map((tItem) => (
+              <div key={tItem.id} className="mobile-stock-card" style={{ padding: '12px' }}>
+                <div className="mobile-stock-card-left">
+                  <div className={`movement-icon-wrapper ${tItem.type}`} style={{ width: '28px', height: '28px' }}>
+                    {tItem.type === 'intake' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                  </div>
+                  <div className="mobile-stock-info">
+                    <h4 style={{ fontSize: '12px' }}>{tItem.material_name}</h4>
+                    <p style={{ fontSize: '10px' }}>{tItem.user_name}</p>
+                  </div>
+                </div>
+                <div className="mobile-stock-card-right">
+                  <span className={`movement-qty ${tItem.type}`} style={{ fontSize: '12px' }}>
+                    {tItem.quantity > 0 ? `+${tItem.quantity}` : tItem.quantity}
+                  </span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                    {getLocaleTimeString(tItem.timestamp)}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </>
     );
@@ -358,7 +396,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         <div className="stat-card">
           <div className="stat-info">
             <h3>{t('cardTotalMaterials')}</h3>
-            <div className="stat-value">{totalMaterialsCount}</div>
+            <div className="stat-value">{loading ? <span className="skeleton-loader skeleton-number" /> : totalMaterialsCount}</div>
             <div className="stat-change up">
               <ArrowUpRight size={14} />
               <span>+5 {t('comparedToLastWeek')}</span>
@@ -372,7 +410,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         <div className="stat-card">
           <div className="stat-info">
             <h3>{t('cardLowStock')}</h3>
-            <div className="stat-value" style={{ color: 'var(--danger)' }}>{lowStockCount}</div>
+            <div className="stat-value" style={{ color: 'var(--danger)' }}>{loading ? <span className="skeleton-loader skeleton-number" /> : lowStockCount}</div>
             <div className="stat-change down" style={{ color: 'var(--warning)' }}>
               <ArrowUpRight size={14} />
               <span>+3 {t('comparedToLastWeek')}</span>
@@ -386,7 +424,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         <div className="stat-card">
           <div className="stat-info">
             <h3>{t('cardTodayMovements')}</h3>
-            <div className="stat-value">{transactionsToday}</div>
+            <div className="stat-value">{loading ? <span className="skeleton-loader skeleton-number" /> : transactionsToday}</div>
             <div className="stat-change up">
               <ArrowUpRight size={14} />
               <span>+8 {t('comparedToYesterday')}</span>
@@ -405,8 +443,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               <div className="status-dot-large green" />
               <span>{t('levelGreen')}</span>
             </div>
-            <div className="status-block-value">{greenCount}</div>
-            <div className="status-block-pct">{totalMaterialsCount > 0 ? Math.round((greenCount / totalMaterialsCount) * 100) : 0}%</div>
+            <div className="status-block-value">{loading ? <span className="skeleton-loader skeleton-number" style={{ height: '38px', width: '40px' }} /> : greenCount}</div>
+            <div className="status-block-pct">
+              {loading ? <span className="skeleton-loader skeleton-badge" /> : `${totalMaterialsCount > 0 ? Math.round((greenCount / totalMaterialsCount) * 100) : 0}%`}
+            </div>
           </div>
           <Sprout className="status-block-bg-icon" size={48} />
         </div>
@@ -417,8 +457,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               <div className="status-dot-large yellow" />
               <span>{t('levelYellow')}</span>
             </div>
-            <div className="status-block-value">{yellowCount}</div>
-            <div className="status-block-pct">{totalMaterialsCount > 0 ? Math.round((yellowCount / totalMaterialsCount) * 100) : 0}%</div>
+            <div className="status-block-value">{loading ? <span className="skeleton-loader skeleton-number" style={{ height: '38px', width: '40px' }} /> : yellowCount}</div>
+            <div className="status-block-pct">
+              {loading ? <span className="skeleton-loader skeleton-badge" /> : `${totalMaterialsCount > 0 ? Math.round((yellowCount / totalMaterialsCount) * 100) : 0}%`}
+            </div>
           </div>
           <ShieldAlert className="status-block-bg-icon" size={48} />
         </div>
@@ -429,8 +471,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               <div className="status-dot-large red" />
               <span>{t('levelRed')}</span>
             </div>
-            <div className="status-block-value">{redCount}</div>
-            <div className="status-block-pct">{totalMaterialsCount > 0 ? Math.round((redCount / totalMaterialsCount) * 100) : 0}%</div>
+            <div className="status-block-value">{loading ? <span className="skeleton-loader skeleton-number" style={{ height: '38px', width: '40px' }} /> : redCount}</div>
+            <div className="status-block-pct">
+              {loading ? <span className="skeleton-loader skeleton-badge" /> : `${totalMaterialsCount > 0 ? Math.round((redCount / totalMaterialsCount) * 100) : 0}%`}
+            </div>
           </div>
           <ShieldAlert className="status-block-bg-icon" size={48} />
         </div>
@@ -495,32 +539,46 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {criticalStockItems.map((m) => {
-                  const status = getStockStatus(m.quantity, m.max_quantity);
-                  const pct = Math.round((m.quantity / m.max_quantity) * 100);
-                  return (
-                    <tr key={m.id}>
-                      <td>
-                        <div className="material-status-cell">
-                          <div className={`status-dot ${status}`} />
-                        </div>
-                      </td>
-                      <td><span className="material-id-badge">{m.id}</span></td>
-                      <td style={{ fontWeight: 600 }}>{m.name}</td>
-                      <td><span className={`qty-val ${status}`}>{m.quantity} {m.unit}</span></td>
-                      <td>{m.max_quantity} {m.unit}</td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div className="progress-bar-container" style={{ width: '60px' }}>
-                            <div className={`progress-bar-fill ${status}`} style={{ width: `${pct}%` }} />
-                          </div>
-                          <span style={{ fontSize: '11px' }}>{pct}%</span>
-                        </div>
-                      </td>
-                      <td>{m.location}</td>
+                {loading ? (
+                  Array.from({ length: 3 }).map((_, idx) => (
+                    <tr key={`sk-crit-row-${idx}`}>
+                      <td><div className="skeleton-loader" style={{ width: '16px', height: '16px', borderRadius: '50%' }} /></td>
+                      <td><div className="skeleton-loader skeleton-row-cell" style={{ width: '60px' }} /></td>
+                      <td><div className="skeleton-loader skeleton-row-cell" style={{ width: '120px' }} /></td>
+                      <td><div className="skeleton-loader skeleton-row-cell" style={{ width: '50px' }} /></td>
+                      <td><div className="skeleton-loader skeleton-row-cell" style={{ width: '50px' }} /></td>
+                      <td><div className="skeleton-loader skeleton-row-cell" style={{ width: '80px' }} /></td>
+                      <td><div className="skeleton-loader skeleton-row-cell" style={{ width: '70px' }} /></td>
                     </tr>
-                  );
-                })}
+                  ))
+                ) : (
+                  criticalStockItems.map((m) => {
+                    const status = getStockStatus(m.quantity, m.max_quantity);
+                    const pct = Math.round((m.quantity / m.max_quantity) * 100);
+                    return (
+                      <tr key={m.id}>
+                        <td>
+                          <div className="material-status-cell">
+                            <div className={`status-dot ${status}`} />
+                          </div>
+                        </td>
+                        <td><span className="material-id-badge">{m.id}</span></td>
+                        <td style={{ fontWeight: 600 }}>{m.name}</td>
+                        <td><span className={`qty-val ${status}`}>{m.quantity} {m.unit}</span></td>
+                        <td>{m.max_quantity} {m.unit}</td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div className="progress-bar-container" style={{ width: '60px' }}>
+                              <div className={`progress-bar-fill ${status}`} style={{ width: `${pct}%` }} />
+                            </div>
+                            <span style={{ fontSize: '11px' }}>{pct}%</span>
+                          </div>
+                        </td>
+                        <td>{m.location}</td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -545,47 +603,65 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           </div>
 
           <div className="movement-list" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            {transactions.slice(0, 4).map((tItem) => (
-              <div key={tItem.id} className="movement-item" style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
-                <div className="movement-left" style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
-                  <div className={`movement-icon-wrapper ${tItem.type}`} style={{ flexShrink: 0 }}>
-                    {tItem.type === 'intake' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
+            {loading ? (
+              Array.from({ length: 4 }).map((_, idx) => (
+                <div key={`sk-mov-grid-${idx}`} className="movement-item" style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                    <div className="skeleton-loader" style={{ width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="skeleton-loader skeleton-text" style={{ width: '120px', marginBottom: '6px' }} />
+                      <div className="skeleton-loader skeleton-text" style={{ width: '70px', height: '12.5px' }} />
+                    </div>
                   </div>
-                  <div className="movement-info" style={{ minWidth: 0, flex: 1 }}>
-                    <h4 style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                      {tItem.material_name} <span className="material-id-badge" style={{ fontSize: '10px' }}>{tItem.material_id}</span>
-                    </h4>
-                    <p style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                      {tItem.user_name} •{' '}
-                      {tItem.notes ? (
-                        tItem.notes.length > 25 ? (
-                          <span 
-                            style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--primary)', fontStyle: 'italic' }} 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedNotes(tItem.notes || null);
-                            }}
-                            title={tItem.notes}
-                          >
-                            {tItem.notes.substring(0, 22)}...
-                          </span>
-                        ) : (
-                          <span style={{ fontStyle: 'italic' }}>{tItem.notes}</span>
-                        )
-                      ) : '—'}
-                    </p>
+                  <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
+                    <div className="skeleton-loader skeleton-badge" style={{ width: '45px', height: '18px', marginBottom: '4px' }} />
+                    <div className="skeleton-loader skeleton-text" style={{ width: '30px', height: '11px' }} />
                   </div>
                 </div>
-                <div className="movement-right" style={{ flexShrink: 0, marginLeft: '12px' }}>
-                  <span className={`movement-qty ${tItem.type}`}>
-                    {tItem.quantity > 0 ? `+${tItem.quantity}` : tItem.quantity}
-                  </span>
-                  <div className="movement-time">
-                    {getLocaleTimeString(tItem.timestamp)}
+              ))
+            ) : (
+              transactions.slice(0, 4).map((tItem) => (
+                <div key={tItem.id} className="movement-item" style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
+                  <div className="movement-left" style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                    <div className={`movement-icon-wrapper ${tItem.type}`} style={{ flexShrink: 0 }}>
+                      {tItem.type === 'intake' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
+                    </div>
+                    <div className="movement-info" style={{ minWidth: 0, flex: 1 }}>
+                      <h4 style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        {tItem.material_name} <span className="material-id-badge" style={{ fontSize: '10px' }}>{tItem.material_id}</span>
+                      </h4>
+                      <p style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        {tItem.user_name} •{' '}
+                        {tItem.notes ? (
+                          tItem.notes.length > 25 ? (
+                            <span 
+                              style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--primary)', fontStyle: 'italic' }} 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedNotes(tItem.notes || null);
+                              }}
+                              title={tItem.notes}
+                            >
+                              {tItem.notes.substring(0, 22)}...
+                            </span>
+                          ) : (
+                            <span style={{ fontStyle: 'italic' }}>{tItem.notes}</span>
+                          )
+                        ) : '—'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="movement-right" style={{ flexShrink: 0, marginLeft: '12px' }}>
+                    <span className={`movement-qty ${tItem.type}`}>
+                      {tItem.quantity > 0 ? `+${tItem.quantity}` : tItem.quantity}
+                    </span>
+                    <div className="movement-time">
+                      {getLocaleTimeString(tItem.timestamp)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

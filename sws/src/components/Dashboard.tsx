@@ -40,7 +40,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [deleteConfirmMaterial, setDeleteConfirmMaterial] = useState<Material | null>(null);
-  const [_loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   // Interaction states
   const [searchQuery, setSearchQuery] = useState('');
@@ -606,6 +606,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 materials={materials}
                 transactions={transactions}
                 setActiveView={setActiveView}
+                loading={loading}
               />
             )}
             {activeView === 'materials' && (
@@ -775,6 +776,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               setShowNewMaterialModal={setShowNewMaterialModal}
               setMobileTab={setMobileTab}
               onMobileStockCardClick={handleScanSuccess}
+              loading={loading}
             />
           )}
 

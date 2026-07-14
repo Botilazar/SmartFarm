@@ -55,7 +55,7 @@ async function returnHookError(message: string, status: number, payload: string 
 
 Deno.serve(async (req) => {
   console.log("Send email hook triggered");
-  
+
   if (req.method !== "POST") {
     return await returnHookError("Method not allowed", 405);
   }
@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
 
   try {
     const evt = JSON.parse(payloadText);
-    
+
     // Resolve email address from the user object
     const email = evt.user?.email || evt.email;
     if (!email) {
@@ -94,16 +94,16 @@ Deno.serve(async (req) => {
 
     // Extract email_data object
     const emailData = evt.email_data || {};
-    
+
     // Resolve action type
     const actionType = emailData.email_action_type || evt.email_action_type || evt.type || "recovery";
-    
+
     // Resolve token, tokenHash, and redirects
     const token = emailData.token;
     const tokenHash = emailData.token_hash;
     const redirectTo = emailData.redirect_to || evt.redirect_to || "";
     const siteUrl = emailData.site_url || "https://iwbxmjysivjudhmgbrsc.supabase.co/auth/v1";
-    
+
     // Build link if not directly provided in event
     let link = evt.link;
     if (!link && tokenHash) {
@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
     }
 
     console.log("Email sent successfully through Resend:", resData);
-    
+
     // Return empty JSON with Content-Type header to signal success to Supabase Auth Hook
     return new Response(JSON.stringify({}), {
       status: 200,
