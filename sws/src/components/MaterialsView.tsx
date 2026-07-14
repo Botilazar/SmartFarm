@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Package, MapPin, QrCode, Trash2, Pencil, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react';
+import { Package, MapPin, QrCode, Trash2, Pencil, ChevronUp, ChevronDown, ArrowUpDown, Calendar } from 'lucide-react';
 import { getStockStatus } from '../db/dbService';
 import type { Material } from '../db/dbService';
 import { useTranslation } from '../context/LanguageContext';
@@ -34,10 +34,26 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
   onMobileScanClick
 }) => {
   const { t } = useTranslation();
-  const [sortField, setSortField] = useState<'name' | 'category' | 'location' | 'stock' | 'unit' | null>('name');
+  const [sortField, setSortField] = useState<'name' | 'category' | 'location' | 'stock' | 'unit' | 'expiration' | null>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  const handleSort = (field: 'name' | 'category' | 'location' | 'stock' | 'unit') => {
+  const checkExpirationStatus = (expDate: string | undefined): 'expired' | 'expiring-soon' | 'ok' | 'none' => {
+    if (!expDate) return 'none';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiration = new Date(expDate);
+    expiration.setHours(0, 0, 0, 0);
+    
+    if (expiration < today) return 'expired';
+    
+    // 30 days in milliseconds
+    const diffTime = expiration.getTime() - today.getTime();
+    if (diffTime <= 30 * 24 * 60 * 60 * 1000) return 'expiring-soon';
+    
+    return 'ok';
+  };
+
+  const handleSort = (field: 'name' | 'category' | 'location' | 'stock' | 'unit' | 'expiration') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -46,7 +62,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
     }
   };
 
-  const renderSortIcon = (field: 'name' | 'category' | 'location' | 'stock' | 'unit') => {
+  const renderSortIcon = (field: 'name' | 'category' | 'location' | 'stock' | 'unit' | 'expiration') => {
     if (sortField !== field) {
       return <ArrowUpDown size={12} style={{ opacity: 0.4, marginLeft: '6px' }} />;
     }
@@ -93,6 +109,10 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
         case 'unit':
           valA = a.unit || '';
           valB = b.unit || '';
+          break;
+        case 'expiration':
+          valA = a.expiration_date || '9999-99-99';
+          valB = b.expiration_date || '9999-99-99';
           break;
         default:
           return 0;
@@ -154,6 +174,24 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                   <div className="mobile-stock-info">
                     <h4 style={{ fontSize: '13px' }}>{m.name}</h4>
                     <p style={{ fontSize: '10px' }}>{t('statId')}: {m.id} • {t('statLocation')}: {m.location}</p>
+                    {m.expiration_date && (
+                      <p style={{ 
+                        fontSize: '9px', 
+                        color: checkExpirationStatus(m.expiration_date) === 'expired' 
+                          ? 'var(--danger)' 
+                          : checkExpirationStatus(m.expiration_date) === 'expiring-soon' 
+                            ? 'var(--warning)' 
+                            : 'var(--text-secondary)',
+                        fontWeight: checkExpirationStatus(m.expiration_date) !== 'ok' ? 700 : 500,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        marginTop: '2px'
+                      }}>
+                        <Calendar size={10} />
+                        <span>{t('matExpiration')}: {m.expiration_date} {checkExpirationStatus(m.expiration_date) === 'expired' ? `(${t('matExpired')})` : ''}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="mobile-stock-card-right" style={{ marginRight: user.role === 'admin' ? '56px' : '0px' }}>
@@ -267,6 +305,12 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                   {renderSortIcon('stock')}
                 </div>
               </th>
+              <th className="sortable" onClick={() => handleSort('expiration')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {t('matExpiration')}
+                  {renderSortIcon('expiration')}
+                </div>
+              </th>
               <th className="sortable" onClick={() => handleSort('unit')}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   {t('colUnit')}
@@ -315,6 +359,26 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                       </div>
                       <span className="pct-badge">{pct}%</span>
                     </div>
+                  </td>
+                  <td>
+                    {m.expiration_date ? (
+                      <span 
+                        style={{ 
+                          color: checkExpirationStatus(m.expiration_date) === 'expired' 
+                            ? 'var(--danger)' 
+                            : checkExpirationStatus(m.expiration_date) === 'expiring-soon' 
+                              ? 'var(--warning)' 
+                              : 'var(--text-primary)',
+                          fontWeight: checkExpirationStatus(m.expiration_date) !== 'ok' ? 600 : 'normal'
+                        }}
+                      >
+                        {m.expiration_date}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>
+                        {t('matNoExpiration')}
+                      </span>
+                    )}
                   </td>
                   <td>{m.unit}</td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -365,7 +429,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
             })}
             {sortedMaterials.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
                   {t('matNoResults')}
                 </td>
               </tr>

@@ -20,6 +20,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
   const [category, setCategory] = useState(initialData ? initialData.category : 'Permetszerek');
   const [location, setLocation] = useState(initialData ? initialData.location : 'A1-01-01');
   const [imageUrl, setImageUrl] = useState(initialData ? initialData.image_url : '');
+  const [expirationDate, setExpirationDate] = useState(initialData ? (initialData.expiration_date || '') : '');
   
   // Camera capture states
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -179,6 +180,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
         category,
         location: location.toUpperCase(),
         image_url: imageUrl,
+        expiration_date: expirationDate || undefined,
       });
     } catch (err: any) {
       setErrorMessage(err.message || t('mfErrorSave'));
@@ -324,6 +326,17 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
                   onChange={(e) => setLocation(e.target.value.toUpperCase())}
                 />
               </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="mExpiration">{t('mfLabelExpiration')}</label>
+              <input
+                id="mExpiration"
+                type="date"
+                className="form-input-text"
+                value={expirationDate}
+                onChange={(e) => setExpirationDate(e.target.value)}
+              />
             </div>
 
             {/* Photo Section */}

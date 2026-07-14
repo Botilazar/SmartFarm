@@ -325,6 +325,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         category: updatedData.category,
         location: updatedData.location.toUpperCase(),
         image_url: updatedData.image_url,
+        expiration_date: updatedData.expiration_date,
       });
 
       // Log a transaction if quantity was modified directly during editing

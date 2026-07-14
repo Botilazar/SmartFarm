@@ -41,6 +41,28 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 }) => {
   const { t, language } = useTranslation();
   const [selectedNotes, setSelectedNotes] = React.useState<string | null>(null);
+
+  const checkExpirationStatus = (expDate: string | undefined): 'expired' | 'expiring-soon' | 'ok' | 'none' => {
+    if (!expDate) return 'none';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiration = new Date(expDate);
+    expiration.setHours(0, 0, 0, 0);
+    
+    if (expiration < today) return 'expired';
+    
+    // 30 days in milliseconds
+    const diffTime = expiration.getTime() - today.getTime();
+    if (diffTime <= 30 * 24 * 60 * 60 * 1000) return 'expiring-soon';
+    
+    return 'ok';
+  };
+
+  const expiringOrExpiredMaterials = React.useMemo(() => {
+    return materials
+      .map((m) => ({ material: m, expStatus: checkExpirationStatus(m.expiration_date) }))
+      .filter((item) => item.expStatus === 'expired' || item.expStatus === 'expiring-soon');
+  }, [materials]);
   
   const totalMaterialsCount = materials.length;
 
@@ -216,6 +238,50 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   if (isMobile) {
     return (
       <>
+        {expiringOrExpiredMaterials.length > 0 && (
+          <div style={{
+            backgroundColor: '#fffbeb',
+            border: '1px solid #fef3c7',
+            borderRadius: 'var(--radius-md)',
+            padding: '14px',
+            marginBottom: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309', fontWeight: 700, fontSize: '13px' }}>
+              <ShieldAlert size={16} style={{ color: '#b45309' }} />
+              <span>{t('dbExpiringAlert')}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {expiringOrExpiredMaterials.map(({ material, expStatus }) => (
+                <div 
+                  key={material.id} 
+                  style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    fontSize: '11px', 
+                    padding: '8px 10px', 
+                    backgroundColor: 'var(--bg-card)', 
+                    borderRadius: 'var(--radius-sm)', 
+                    border: `1px solid ${expStatus === 'expired' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}` 
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
+                    <span className="material-id-badge" style={{ fontSize: '9px', padding: '1px 4px' }}>{material.id}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{material.name}</span>
+                  </div>
+                  <div style={{ color: expStatus === 'expired' ? 'var(--danger)' : 'var(--warning)', fontWeight: 700, marginLeft: '8px', flexShrink: 0 }}>
+                    {material.expiration_date} {expStatus === 'expired' ? `(${t('matExpired')})` : `(${t('matExpiringSoon')})`}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Mobile Stats grid */}
         <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '20px' }}>
           <div className="mobile-stat-card">
@@ -391,6 +457,50 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           {getLocaleDateString()}
         </div>
       </div>
+
+      {expiringOrExpiredMaterials.length > 0 && (
+        <div style={{
+          backgroundColor: '#fffbeb',
+          border: '1px solid #fef3c7',
+          borderRadius: 'var(--radius-md)',
+          padding: '16px',
+          marginBottom: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309', fontWeight: 700, fontSize: '14px' }}>
+            <ShieldAlert size={18} style={{ color: '#b45309' }} />
+            <span>{t('dbExpiringAlert')}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {expiringOrExpiredMaterials.map(({ material, expStatus }) => (
+              <div 
+                key={material.id} 
+                style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  fontSize: '12px', 
+                  padding: '10px 12px', 
+                  backgroundColor: 'var(--bg-card)', 
+                  borderRadius: 'var(--radius-sm)', 
+                  border: `1px solid ${expStatus === 'expired' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}` 
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                  <span className="material-id-badge">{material.id}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{material.name}</span>
+                </div>
+                <div style={{ color: expStatus === 'expired' ? 'var(--danger)' : 'var(--warning)', fontWeight: 700, marginLeft: '12px', flexShrink: 0 }}>
+                  {material.expiration_date} {expStatus === 'expired' ? `(${t('matExpired')})` : `(${t('matExpiringSoon')})`}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="stats-grid">
         <div className="stat-card">
