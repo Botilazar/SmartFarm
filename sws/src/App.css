@@ -1963,3 +1963,79 @@ input:focus, select:focus, textarea:focus {
   width: 80%;
   border-radius: 4px;
 }
+
+/* Custom Mobile Fixes and Premium Alignments */
+.mobile-search-wrapper .input-icon {
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+
+.mobile-stat-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.mobile-stat-icon.green {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.mobile-stat-icon.yellow {
+  background-color: var(--warning-bg);
+  color: var(--warning);
+}
+
+.mobile-stat-icon.red {
+  background-color: var(--danger-bg);
+  color: var(--danger);
+}
+
+.mobile-stock-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mobile-stock-info h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.mobile-stock-info p {
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.mobile-stock-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mobile-stock-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+

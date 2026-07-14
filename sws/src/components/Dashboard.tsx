@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Sprout, Search, Bell, LogOut, LayoutDashboard, Package,
   Plus, ArrowLeftRight, QrCode, Users as UsersIcon,
-  Settings as SettingsIcon, ArrowUpRight, ArrowDownRight
+  Settings as SettingsIcon, ArrowUpRight, ArrowDownRight, ArrowLeft, ChevronRight
 } from 'lucide-react';
 import { dbService } from '../db/dbService';
 import type { Material, Transaction, UserProfile } from '../db/dbService';
@@ -32,7 +32,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   const { t, language } = useTranslation();
   // Navigation states
   const [activeView, setActiveView] = useState<'dashboard' | 'materials' | 'movements' | 'qr-codes' | 'users' | 'settings'>('dashboard');
-  const [mobileTab, setMobileTab] = useState<'home' | 'search' | 'qr' | 'movements' | 'profile'>('home');
+  const [mobileTab, setMobileTab] = useState<'home' | 'materials' | 'qr' | 'movements' | 'profile'>('home');
+  const [profileSubView, setProfileSubView] = useState<'none' | 'qr-codes' | 'users'>('none');
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   // Data states
@@ -751,7 +752,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
-                  setMobileTab('search');
+                  setMobileTab('materials');
                 }}
               />
             </div>
@@ -780,7 +781,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
             />
           )}
 
-          {mobileTab === 'search' && (
+          {mobileTab === 'materials' && (
             <MaterialsView
               materials={materials}
               searchQuery={searchQuery}
@@ -802,42 +803,100 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
           )}
 
           {mobileTab === 'profile' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', textAlign: 'center', paddingTop: '20px' }}>
-              <img
-                src={user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=006837&color=fff&size=128`}
-                alt={user.name}
-                style={{ width: '96px', height: '96px', borderRadius: '50%', border: '3px solid var(--primary)', boxShadow: 'var(--shadow-md)', objectFit: 'cover' }}
-              />
-              <div>
-                <h3 style={{ fontSize: '18px', fontWeight: 700 }}>{user.name}</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{user.email}</p>
-                <span
-                  style={{
-                    display: 'inline-block',
-                    padding: '4px 12px',
-                    backgroundColor: 'var(--primary-light)',
-                    color: 'var(--primary)',
-                    borderRadius: '12px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    marginTop: '8px'
-                  }}
-                >
-                  {user.role === 'admin' ? 'Raktárvezető' : 'Kezelő'}
-                </span>
-              </div>
+            <div style={{ width: '100%' }}>
+              {profileSubView === 'none' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', textAlign: 'center', paddingTop: '20px' }}>
+                  <img
+                    src={user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=006837&color=fff&size=128`}
+                    alt={user.name}
+                    style={{ width: '96px', height: '96px', borderRadius: '50%', border: '3px solid var(--primary)', boxShadow: 'var(--shadow-md)', objectFit: 'cover' }}
+                  />
+                  <div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 700 }}>{user.name}</h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{user.email}</p>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        padding: '4px 12px',
+                        backgroundColor: 'var(--primary-light)',
+                        color: 'var(--primary)',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        marginTop: '8px'
+                      }}
+                    >
+                      {user.role === 'admin' ? 'Raktárvezető' : 'Kezelő'}
+                    </span>
+                  </div>
 
-              <div style={{ width: '100%', marginTop: '20px' }}>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  style={{ width: '100%', borderColor: 'var(--danger)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                  onClick={onLogout}
-                >
-                  <LogOut size={16} />
-                  <span>Kijelentkezés</span>
-                </button>
-              </div>
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontWeight: 600 }}
+                      onClick={() => setProfileSubView('qr-codes')}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <QrCode size={18} style={{ color: 'var(--primary)' }} />
+                        <span>QR kódok megtekintése</span>
+                      </div>
+                      <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
+                    </button>
+
+                    {user.role === 'admin' && (
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontWeight: 600 }}
+                        onClick={() => setProfileSubView('users')}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <UsersIcon size={18} style={{ color: 'var(--primary)' }} />
+                          <span>Felhasználók kezelése</span>
+                        </div>
+                        <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
+                      </button>
+                    )}
+                  </div>
+
+                  <div style={{ width: '100%', marginTop: '20px' }}>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      style={{ width: '100%', borderColor: 'var(--danger)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                      onClick={onLogout}
+                    >
+                      <LogOut size={16} />
+                      <span>Kijelentkezés</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {profileSubView === 'qr-codes' && (
+                <div>
+                  <button
+                    onClick={() => setProfileSubView('none')}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: 'var(--primary)', fontWeight: 600, fontSize: '13px' }}
+                  >
+                    <ArrowLeft size={16} /> Vissza a profilhoz
+                  </button>
+                  <QrCodesView materials={materials} onPrintQrClick={setViewingQrMaterial} />
+                </div>
+              )}
+
+              {profileSubView === 'users' && user.role === 'admin' && (
+                <div>
+                  <button
+                    onClick={() => setProfileSubView('none')}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: 'var(--primary)', fontWeight: 600, fontSize: '13px' }}
+                  >
+                    <ArrowLeft size={16} /> Vissza a profilhoz
+                  </button>
+                  <UsersView users={users} onUpdateUserRole={handleUpdateUserRole} />
+                </div>
+              )}
             </div>
           )}
         </main>
@@ -846,22 +905,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         <nav className="mobile-tab-bar">
           <button
             className={`mobile-tab-item ${mobileTab === 'home' ? 'active' : ''}`}
-            onClick={() => setMobileTab('home')}
+            onClick={() => { setMobileTab('home'); setProfileSubView('none'); }}
           >
             <LayoutDashboard size={20} />
             <span>Főoldal</span>
           </button>
           <button
-            className={`mobile-tab-item ${mobileTab === 'search' ? 'active' : ''}`}
-            onClick={() => setMobileTab('search')}
+            className={`mobile-tab-item ${mobileTab === 'materials' ? 'active' : ''}`}
+            onClick={() => { setMobileTab('materials'); setProfileSubView('none'); }}
           >
-            <Search size={20} />
-            <span>Keresés</span>
+            <Package size={20} />
+            <span>Anyagok</span>
           </button>
           <button
             className={`mobile-tab-item ${mobileTab === 'qr' ? 'active' : ''}`}
             onClick={() => {
               setMobileTab('home');
+              setProfileSubView('none');
               setShowScanner(true);
             }}
           >
@@ -870,14 +930,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
           </button>
           <button
             className={`mobile-tab-item ${mobileTab === 'movements' ? 'active' : ''}`}
-            onClick={() => setMobileTab('movements')}
+            onClick={() => { setMobileTab('movements'); setProfileSubView('none'); }}
           >
             <ArrowLeftRight size={20} />
             <span>Mozgások</span>
           </button>
           <button
             className={`mobile-tab-item ${mobileTab === 'profile' ? 'active' : ''}`}
-            onClick={() => setMobileTab('profile')}
+            onClick={() => { setMobileTab('profile'); setProfileSubView('none'); }}
           >
             <UsersIcon size={20} />
             <span>Profil</span>

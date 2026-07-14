@@ -14,7 +14,7 @@ interface DashboardOverviewProps {
   isMobile?: boolean;
   setShowScanner?: (s: boolean) => void;
   setShowNewMaterialModal?: (m: boolean) => void;
-  setMobileTab?: (t: 'home' | 'search' | 'qr' | 'movements' | 'profile') => void;
+  setMobileTab?: (t: 'home' | 'materials' | 'qr' | 'movements' | 'profile') => void;
   onMobileStockCardClick?: (materialId: string) => void;
   loading?: boolean;
 }
@@ -219,30 +219,30 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         {/* Mobile Stats grid */}
         <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '20px' }}>
           <div className="mobile-stat-card">
-            <div className="mobile-stat-header">
+            <div className="mobile-stat-card-header">
               <span className="mobile-stat-title">{t('cardTotalMaterials')}</span>
               <div className="mobile-stat-icon green"><Package size={16} /></div>
             </div>
-            <div className="mobile-stat-value">{loading ? <span className="skeleton-loader skeleton-number" /> : totalMaterialsCount}</div>
-            <span className="mobile-stat-desc" style={{ color: 'var(--success)' }}>+5 {t('comparedToLastWeek')}</span>
+            <div className="mobile-stat-card-value">{loading ? <span className="skeleton-loader skeleton-number" /> : totalMaterialsCount}</div>
+            <span className="mobile-stat-card-change" style={{ color: 'var(--success)' }}>+5 {t('comparedToLastWeek')}</span>
           </div>
 
           <div className="mobile-stat-card">
-            <div className="mobile-stat-header">
+            <div className="mobile-stat-card-header">
               <span className="mobile-stat-title">{t('cardLowStock')}</span>
               <div className="mobile-stat-icon red"><ShieldAlert size={16} /></div>
             </div>
-            <div className="mobile-stat-value" style={{ color: 'var(--danger)' }}>{loading ? <span className="skeleton-loader skeleton-number" /> : lowStockCount}</div>
-            <span className="mobile-stat-desc" style={{ color: 'var(--warning)' }}>+3 {t('comparedToLastWeek')}</span>
+            <div className="mobile-stat-card-value" style={{ color: 'var(--danger)' }}>{loading ? <span className="skeleton-loader skeleton-number" /> : lowStockCount}</div>
+            <span className="mobile-stat-card-change" style={{ color: 'var(--warning)' }}>+3 {t('comparedToLastWeek')}</span>
           </div>
 
           <div className="mobile-stat-card">
-            <div className="mobile-stat-header">
+            <div className="mobile-stat-card-header">
               <span className="mobile-stat-title">{t('cardTodayMovements')}</span>
               <div className="mobile-stat-icon green"><ArrowLeftRight size={16} /></div>
             </div>
-            <div className="mobile-stat-value">{loading ? <span className="skeleton-loader skeleton-number" /> : transactionsToday}</div>
-            <span className="mobile-stat-desc" style={{ color: 'var(--success)' }}>+8 {t('comparedToYesterday')}</span>
+            <div className="mobile-stat-card-value">{loading ? <span className="skeleton-loader skeleton-number" /> : transactionsToday}</div>
+            <span className="mobile-stat-card-change" style={{ color: 'var(--success)' }}>+8 {t('comparedToYesterday')}</span>
           </div>
         </div>
 
@@ -271,7 +271,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         {/* Mobile critical inventory stock list */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <span className="mobile-section-title">{t('criticalStockTitle')}</span>
-          <button className="mobile-section-link" onClick={() => setMobileTab && setMobileTab('search')}>
+          <button className="mobile-section-link" onClick={() => setMobileTab && setMobileTab('materials')}>
             {t('viewAllCritical').split(' ')[0]} &gt;
           </button>
         </div>
