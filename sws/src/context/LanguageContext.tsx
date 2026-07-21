@@ -19,6 +19,7 @@ const translations: Record<Language, Record<string, string>> = {
     navMovements: 'Készletmozgások',
     navQrCodes: 'QR-kódok',
     navUsers: 'Felhasználók',
+    navAllowedEmails: 'Engedélyezett e-mailek',
     navSettings: 'Beállítások',
     navLogout: 'Kijelentkezés',
 
@@ -232,6 +233,7 @@ const translations: Record<Language, Record<string, string>> = {
     navMovements: 'Movements',
     navQrCodes: 'QR Codes',
     navUsers: 'Users',
+    navAllowedEmails: 'Allowed Emails',
     navSettings: 'Settings',
     navLogout: 'Logout',
 
@@ -445,6 +447,7 @@ const translations: Record<Language, Record<string, string>> = {
     navMovements: 'Bewegungen',
     navQrCodes: 'QR-Codes',
     navUsers: 'Benutzer',
+    navAllowedEmails: 'Genehmigte E-Mails',
     navSettings: 'Einstellungen',
     navLogout: 'Abmelden',
 

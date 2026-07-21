@@ -988,13 +988,13 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       </div>
 
       {/* Consumption Trend & Smart Prediction Forecast Row */}
-      <div className="dashboard-details-grid" style={{ gridTemplateColumns: '1.5fr 1fr', gap: '20px', marginTop: '24px', marginBottom: '24px' }}>
+      <div className="dashboard-details-grid consumption-forecast-grid">
         {renderConsumptionChart()}
         {renderForecastingCard()}
       </div>
 
-      <div className="dashboard-details-grid" style={{ gridTemplateColumns: '1fr 1.5fr' }}>
-        <div className="details-card" style={{ gridColumn: 'span 2' }}>
+      <div className="movements-full-card-wrapper">
+        <div className="details-card movements-full-card">
           <div className="details-card-header">
             <h3 className="details-card-title">{t('movTitle')}</h3>
             <button className="view-all-link" onClick={() => setActiveView('movements')}>
@@ -1003,7 +1003,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             </button>
           </div>
 
-          <div className="movement-list" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div className="movement-list movements-grid">
             {loading ? (
               Array.from({ length: 4 }).map((_, idx) => (
                 <div key={`sk-mov-grid-${idx}`} className="movement-item" style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>

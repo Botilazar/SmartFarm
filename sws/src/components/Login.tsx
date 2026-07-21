@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, Building2, Sprout, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../db/supabaseClient';
+import { dbService } from '../db/dbService';
 // import { useTranslation } from '../context/LanguageContext';
 
 interface LoginProps {
@@ -71,6 +72,13 @@ export const Login: React.FC<LoginProps> = ({
     }
 
     try {
+      // Check if email is in allowed whitelist
+      const isAllowed = await dbService.isEmailAllowed(loginEmail);
+
+      if (!isAllowed) {
+        throw new Error('Ez az e-mail cím nincs engedélyezve a SmartFarm rendszerben! Kérjük, vedd fel a kapcsolatot a raktárvezetővel az engedélyezésért.');
+      }
+
       if (isSupabaseConfigured) {
         const { error: authError } = await supabase!.auth.signInWithPassword({
           email: loginEmail,
@@ -132,6 +140,15 @@ export const Login: React.FC<LoginProps> = ({
     }
 
     try {
+      const isAllowed = await dbService.isEmailAllowed(email);
+
+      if (!isAllowed) {
+        setError('Ez az e-mail cím nincs engedélyezve! A regisztrációhoz a raktárvezetőnek előre fel kell vennie az e-mail címedet az engedélyezett listára.');
+        setLoading(false);
+        return;
+      }
+
+      // Email is approved! Complete registration
       if (isSupabaseConfigured) {
         const { data, error: authError } = await supabase!.auth.signUp({
           email,

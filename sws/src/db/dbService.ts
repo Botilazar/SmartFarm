@@ -33,6 +33,18 @@ export interface UserProfile {
   role: 'admin' | 'operator';
 }
 
+export interface AllowedEmail {
+  id: string;
+  email: string;
+  name?: string;
+  created_at: string;
+}
+
+export type AccessRequest = AllowedEmail & {
+  status: 'approved' | 'pending' | 'rejected';
+  requested_at: string;
+};
+
 // Check status helper based on user criteria:
 // Green: > 70%, Yellow: 40-70%, Red: < 40%
 export const getStockStatus = (quantity: number, maxQuantity: number): 'green' | 'yellow' | 'red' => {
@@ -51,6 +63,7 @@ const STORAGE_KEYS = {
   TRANSACTIONS: 'smartfarm_transactions',
   USERS: 'smartfarm_users',
   CURRENT_USER: 'smartfarm_current_user',
+  ALLOWED_EMAILS: 'smartfarm_allowed_emails',
 };
 
 // Generate seed data matching screenshot stats exactly:
@@ -689,5 +702,181 @@ export const dbService = {
       .eq('id', userId);
 
     if (error) throw error;
+  },
+
+  // ALLOWED EMAILS WHITELIST METHODS
+
+  // GET ALL ALLOWED EMAILS
+  getAllowedEmails: async (): Promise<AllowedEmail[]> => {
+    if (dbService.isMockMode()) {
+      const storedJson = localStorage.getItem(STORAGE_KEYS.ALLOWED_EMAILS);
+      const emails: AllowedEmail[] = storedJson ? JSON.parse(storedJson) : [
+        {
+          id: 'mock-allowed-1',
+          email: 'kovacs.gabor@ceg.hu',
+          name: 'Kovács Gábor (Raktárvezető)',
+          created_at: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
+        },
+        {
+          id: 'mock-allowed-2',
+          email: 'kezelo.janos@ceg.hu',
+          name: 'Kezelő János (Raktári dolgozó)',
+          created_at: new Date(Date.now() - 15 * 24 * 3600 * 1000).toISOString()
+        }
+      ];
+
+      // Ensure storage initialized
+      if (!storedJson) {
+        localStorage.setItem(STORAGE_KEYS.ALLOWED_EMAILS, JSON.stringify(emails));
+      }
+
+      return emails.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+
+    try {
+      const { data, error } = await supabase!
+        .from('allowed_emails')
+        .select('*');
+
+      if (error) {
+        console.warn('Could not fetch allowed_emails table from Supabase:', error.message);
+        return [];
+      }
+
+      const mapped: AllowedEmail[] = (data || []).map((item: any) => ({
+        id: item.id,
+        email: item.email,
+        name: item.name,
+        created_at: item.created_at || item.requested_at || new Date().toISOString()
+      }));
+
+      return mapped.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    } catch (err) {
+      console.warn('Exception fetching allowed_emails:', err);
+      return [];
+    }
+  },
+
+  // CHECK IF EMAIL IS ALLOWED
+  isEmailAllowed: async (email: string): Promise<boolean> => {
+    const trimmedEmail = email.trim().toLowerCase();
+
+    // Default admin / test accounts are always allowed
+    if (trimmedEmail === 'kovacs.gabor@ceg.hu' || trimmedEmail === 'kezelo.janos@ceg.hu') {
+      return true;
+    }
+
+    if (dbService.isMockMode()) {
+      const list = await dbService.getAllowedEmails();
+      const found = list.some(item => item.email.toLowerCase() === trimmedEmail);
+      if (found) return true;
+
+      // Check if user exists in mock users
+      const savedUsersJson = localStorage.getItem(STORAGE_KEYS.USERS);
+      const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
+      return savedUsers.some((u: any) => u.email.toLowerCase() === trimmedEmail);
+    }
+
+    try {
+      const { data, error } = await supabase!
+        .from('allowed_emails')
+        .select('id')
+        .eq('email', trimmedEmail)
+        .maybeSingle();
+
+      if (!error && data) return true;
+    } catch (err) {
+      console.warn('Error checking allowed_emails table:', err);
+    }
+
+    // Fallback check: if user is already in profiles table
+    try {
+      const { data: profData } = await supabase!
+        .from('profiles')
+        .select('id')
+        .eq('email', trimmedEmail)
+        .maybeSingle();
+
+      return !!profData;
+    } catch (err) {
+      return false;
+    }
+  },
+
+  // ADD ALLOWED EMAIL
+  addAllowedEmail: async (email: string, name?: string): Promise<AllowedEmail> => {
+    const trimmedEmail = email.trim().toLowerCase();
+    const newItem: AllowedEmail = {
+      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11),
+      email: trimmedEmail,
+      name: name || 'Engedélyezett Felhasználó',
+      created_at: new Date().toISOString()
+    };
+
+    if (dbService.isMockMode()) {
+      const list = await dbService.getAllowedEmails();
+      const existingIdx = list.findIndex(i => i.email.toLowerCase() === trimmedEmail);
+      if (existingIdx !== -1) {
+        list[existingIdx].name = name || list[existingIdx].name;
+        localStorage.setItem(STORAGE_KEYS.ALLOWED_EMAILS, JSON.stringify(list));
+        return list[existingIdx];
+      } else {
+        list.push(newItem);
+        localStorage.setItem(STORAGE_KEYS.ALLOWED_EMAILS, JSON.stringify(list));
+        return newItem;
+      }
+    }
+
+    const { data, error } = await supabase!
+      .from('allowed_emails')
+      .upsert({
+        email: trimmedEmail,
+        name: name || 'Engedélyezett Felhasználó',
+        created_at: new Date().toISOString()
+      }, { onConflict: 'email' })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // DELETE ALLOWED EMAIL
+  deleteAllowedEmail: async (idOrEmail: string): Promise<void> => {
+    if (dbService.isMockMode()) {
+      const list = await dbService.getAllowedEmails();
+      const updated = list.filter(i => i.id !== idOrEmail && i.email.toLowerCase() !== idOrEmail.toLowerCase());
+      localStorage.setItem(STORAGE_KEYS.ALLOWED_EMAILS, JSON.stringify(updated));
+      return;
+    }
+
+    const { error } = await supabase!
+      .from('allowed_emails')
+      .delete()
+      .or(`id.eq.${idOrEmail},email.eq.${idOrEmail}`);
+
+    if (error) throw error;
+  },
+
+  // BACKWARD COMPATIBILITY ALIASES FOR ACCESS REQUESTS
+  getAccessRequests: async (): Promise<AccessRequest[]> => {
+    const list = await dbService.getAllowedEmails();
+    return list.map(item => ({
+      ...item,
+      status: 'approved' as const,
+      requested_at: item.created_at
+    }));
+  },
+
+  updateAccessRequestStatus: async (_id: string, _status: string): Promise<void> => {
+    return;
+  },
+
+  deleteAccessRequest: async (idOrEmail: string): Promise<void> => {
+    return dbService.deleteAllowedEmail(idOrEmail);
+  },
+
+  addApprovedEmailDirectly: async (email: string, name?: string): Promise<AllowedEmail> => {
+    return dbService.addAllowedEmail(email, name);
   }
 };

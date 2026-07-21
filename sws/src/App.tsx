@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Login } from './components/Login';
 import { Dashboard } from './components/Dashboard';
 import { supabase, isSupabaseConfigured } from './db/supabaseClient';
+import { dbService } from './db/dbService';
 import './App.css';
 
 interface UserSession {
@@ -18,7 +19,19 @@ function App() {
   const [isRecoveringPassword, setIsRecoveringPassword] = useState(false);
 
   // Fetch user profile details from profiles table, falling back to user metadata
-  const fetchUserProfile = async (supabaseUser: any): Promise<UserSession> => {
+  const fetchUserProfile = async (supabaseUser: any): Promise<UserSession | null> => {
+    const email = supabaseUser.email || '';
+    
+    // Check if email access is allowed
+    if (email) {
+      const isAllowed = await dbService.isEmailAllowed(email);
+      if (!isAllowed) {
+        console.warn(`User ${email} access is not allowed. Signing out.`);
+        await supabase!.auth.signOut();
+        return null;
+      }
+    }
+
     const metadataName = supabaseUser.user_metadata?.name || 'Új Felhasználó';
     const metadataRole = supabaseUser.user_metadata?.role || 'operator';
     
@@ -33,7 +46,7 @@ function App() {
         return {
           id: supabaseUser.id,
           name: data.name || metadataName,
-          email: supabaseUser.email || '',
+          email: email,
           role: data.role === 'admin' ? 'admin' : 'operator',
           avatar_url: data.avatar_url || undefined
         };
@@ -45,7 +58,7 @@ function App() {
     return {
       id: supabaseUser.id,
       name: metadataName,
-      email: supabaseUser.email || '',
+      email: email,
       role: metadataRole === 'admin' ? 'admin' : 'operator'
     };
   };
@@ -61,7 +74,16 @@ function App() {
       const savedUser = localStorage.getItem('smartfarm_current_user') || sessionStorage.getItem('smartfarm_current_user');
       if (savedUser) {
         try {
-          setCurrentUser(JSON.parse(savedUser));
+          const parsed = JSON.parse(savedUser);
+          dbService.isEmailAllowed(parsed.email).then((isAllowed) => {
+            if (isAllowed) {
+              setCurrentUser(parsed);
+            } else {
+              localStorage.removeItem('smartfarm_current_user');
+              sessionStorage.removeItem('smartfarm_current_user');
+              setCurrentUser(null);
+            }
+          });
         } catch (err) {
           console.error('Failed to parse saved user session', err);
           localStorage.removeItem('smartfarm_current_user');

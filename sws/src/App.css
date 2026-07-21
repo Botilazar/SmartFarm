@@ -508,11 +508,14 @@ input:focus, select:focus, textarea:focus {
   color: var(--text-secondary);
 }
 
-/* Page wrapper */
+/* Page wrapper with max-width limit for ultra-high res monitors */
 .page-content {
   padding: 32px;
   overflow-y: auto;
   flex: 1;
+  max-width: 1680px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .page-title-section {
@@ -523,7 +526,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .page-title {
-  font-size: 26px;
+  font-size: clamp(22px, 1.8vw, 30px);
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -551,6 +554,7 @@ input:focus, select:focus, textarea:focus {
   align-items: center;
   justify-content: space-between;
   box-shadow: var(--shadow-sm);
+  min-width: 0;
 }
 
 .stat-info h3 {
@@ -561,7 +565,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .stat-value {
-  font-size: 28px;
+  font-size: clamp(24px, 2vw, 32px);
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -590,6 +594,7 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .stat-icon-wrapper.green {
@@ -610,7 +615,7 @@ input:focus, select:focus, textarea:focus {
 /* Status summary block cards */
 .status-overview-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 20px;
   margin-bottom: 28px;
 }
@@ -626,6 +631,7 @@ input:focus, select:focus, textarea:focus {
   box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
+  min-width: 0;
 }
 
 .status-block-info {
@@ -653,7 +659,7 @@ input:focus, select:focus, textarea:focus {
 .status-dot-large.red { background-color: var(--danger); }
 
 .status-block-value {
-  font-size: 32px;
+  font-size: clamp(26px, 2.2vw, 36px);
   font-weight: 700;
   color: var(--text-primary);
   margin-top: 4px;
@@ -677,6 +683,33 @@ input:focus, select:focus, textarea:focus {
   grid-template-columns: 2fr 1fr;
   gap: 24px;
   margin-bottom: 28px;
+}
+
+.consumption-forecast-grid {
+  grid-template-columns: 1.5fr 1fr;
+  gap: 20px;
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  flex: 1.5;
+  min-width: 0;
+}
+
+.forecast-card {
+  flex: 1;
+  min-width: 0;
+}
+
+.movements-full-card-wrapper {
+  margin-top: 24px;
+}
+
+.movements-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
 .details-card {
@@ -1513,6 +1546,138 @@ input:focus, select:focus, textarea:focus {
 @media (min-width: 769px) {
   .mobile-only {
     display: none !important;
+  }
+}
+
+/* Multi-Monitor & Multi-Resolution Responsive Scaling Rules */
+
+/* High-Resolution & Ultra-Wide Monitors (1440p / 4K / Ultra-wide >= 1600px) */
+@media (min-width: 1600px) {
+  .page-content {
+    max-width: 1840px;
+    padding: 40px 56px;
+  }
+
+  .stats-grid {
+    gap: 24px;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .stat-card {
+    padding: 28px;
+  }
+
+  .stat-value {
+    font-size: 34px;
+  }
+
+  .status-overview-grid {
+    gap: 24px;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .status-block-card {
+    padding: 26px;
+  }
+
+  .status-block-value {
+    font-size: 38px;
+  }
+
+  .details-card {
+    padding: 28px;
+  }
+}
+
+/* Medium Desktop / Small Laptop Monitors (1025px to 1366px) */
+@media (max-width: 1366px) {
+  .page-content {
+    padding: 24px 28px;
+  }
+
+  .dashboard-details-grid {
+    gap: 20px;
+  }
+
+  .consumption-forecast-grid {
+    grid-template-columns: 1.3fr 1fr;
+  }
+}
+
+/* Laptop & Tablet Landscape Displays (992px to 1180px) */
+@media (max-width: 1180px) {
+  .dashboard-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .consumption-forecast-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .movements-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .status-overview-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+/* Compact Laptops (769px to 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .desktop-sidebar {
+    width: 210px;
+  }
+
+  .sidebar-header {
+    padding: 18px;
+  }
+
+  .sidebar-nav {
+    padding: 16px 12px;
+  }
+
+  .nav-item {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .desktop-header {
+    padding: 0 20px;
+  }
+
+  .search-bar-wrapper {
+    max-width: 320px;
+  }
+
+  .page-content {
+    padding: 20px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 16px;
+  }
+
+  .stat-card {
+    padding: 18px 20px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .status-block-card {
+    padding: 16px 18px;
+  }
+
+  .status-block-value {
+    font-size: 28px;
+  }
+
+  .data-table th, .data-table td {
+    padding: 12px 14px;
+    font-size: 12px;
   }
 }
 

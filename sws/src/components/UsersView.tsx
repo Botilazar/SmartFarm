@@ -5,10 +5,11 @@ import { useTranslation } from '../context/LanguageContext';
 
 interface UsersViewProps {
   users: UserProfile[];
+  currentUserEmail?: string;
   onUpdateUserRole?: (userId: string, newRole: 'admin' | 'operator') => Promise<void>;
 }
 
-export const UsersView: React.FC<UsersViewProps> = ({ users, onUpdateUserRole }) => {
+export const UsersView: React.FC<UsersViewProps> = ({ users, currentUserEmail, onUpdateUserRole }) => {
   const { t } = useTranslation();
   const [sortField, setSortField] = useState<'name' | 'email' | 'role' | null>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -126,37 +127,50 @@ export const UsersView: React.FC<UsersViewProps> = ({ users, onUpdateUserRole })
             </tr>
           </thead>
           <tbody>
-            {sortedUsers.map((u) => (
-              <tr key={u.id}>
-                <td style={{ fontWeight: 600 }}>{u.name}</td>
-                <td>{u.email}</td>
-                <td>
-                  <select
-                    value={u.role}
-                    onChange={(e) => {
-                      if (onUpdateUserRole) {
-                        onUpdateUserRole(u.id, e.target.value as 'admin' | 'operator');
-                      }
-                    }}
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border)',
-                      fontSize: '13px',
-                      backgroundColor: 'transparent',
-                      fontWeight: u.role === 'admin' ? '600' : 'normal',
-                      color: u.role === 'admin' ? 'var(--primary)' : 'var(--text-primary)',
-                      cursor: 'pointer',
-                      outline: 'none',
-                    }}
-                  >
-                    <option value="operator">{t('usrRoleOperator')}</option>
-                    <option value="admin">{t('usrRoleAdmin')}</option>
-                  </select>
-                </td>
-                <td><span style={{ color: 'var(--success)', fontWeight: 600 }}>{t('usrStatusActive')}</span></td>
-              </tr>
-            ))}
+            {sortedUsers.map((u) => {
+              const isSelf = currentUserEmail && u.email?.toLowerCase() === currentUserEmail.toLowerCase();
+              return (
+                <tr key={u.id}>
+                  <td style={{ fontWeight: 600 }}>
+                    {u.name}
+                    {isSelf && (
+                      <span style={{ fontSize: '11px', color: 'var(--primary)', marginLeft: '8px', fontWeight: 500 }}>
+                        (Saját fiók)
+                      </span>
+                    )}
+                  </td>
+                  <td>{u.email}</td>
+                  <td>
+                    <select
+                      value={u.role}
+                      disabled={isSelf}
+                      title={isSelf ? 'Saját jogosultságodat biztonsági okokból nem módosíthatod' : undefined}
+                      onChange={(e) => {
+                        if (onUpdateUserRole && !isSelf) {
+                          onUpdateUserRole(u.id, e.target.value as 'admin' | 'operator');
+                        }
+                      }}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border)',
+                        fontSize: '13px',
+                        backgroundColor: 'transparent',
+                        fontWeight: u.role === 'admin' ? '600' : 'normal',
+                        color: u.role === 'admin' ? 'var(--primary)' : 'var(--text-primary)',
+                        cursor: isSelf ? 'not-allowed' : 'pointer',
+                        opacity: isSelf ? 0.6 : 1,
+                        outline: 'none',
+                      }}
+                    >
+                      <option value="operator">{t('usrRoleOperator')}</option>
+                      <option value="admin">{t('usrRoleAdmin')}</option>
+                    </select>
+                  </td>
+                  <td><span style={{ color: 'var(--success)', fontWeight: 600 }}>{t('usrStatusActive')}</span></td>
+                </tr>
+              );
+            })}
             {sortedUsers.length === 0 && (
               <tr>
                 <td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>

@@ -33,31 +33,81 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Disable Row Level Security (RLS) for testing or enable basic access
--- To keep it simple and match the request where "anyone logged in can edit",
--- you can set up simple policies or disable RLS:
+-- Enable Row Level Security (RLS)
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Create policies for authenticated users
+-- Create policies for authenticated users (with DROP IF EXISTS to avoid errors on re-running)
+DROP POLICY IF EXISTS "Allow all actions for authenticated users on materials" ON public.materials;
 CREATE POLICY "Allow all actions for authenticated users on materials"
-ON public.materials FOR ALL
-TO authenticated
-USING (true)
-WITH CHECK (true);
+  ON public.materials FOR ALL
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow all actions for authenticated users on transactions" ON public.transactions;
 CREATE POLICY "Allow all actions for authenticated users on transactions"
-ON public.transactions FOR ALL
-TO authenticated
-USING (true)
-WITH CHECK (true);
+  ON public.transactions FOR ALL
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow all actions for profiles" ON public.profiles;
 CREATE POLICY "Allow all actions for profiles"
   ON public.profiles FOR ALL
   TO authenticated
   USING (true)
   WITH CHECK (true);
+
+-- Migration helper: If access_requests table exists, migrate it to allowed_emails and fix columns
+DO $$
+BEGIN
+  -- If access_requests table exists, rename to allowed_emails
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'access_requests') 
+     AND NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'allowed_emails') THEN
+    ALTER TABLE public.access_requests RENAME TO allowed_emails;
+  END IF;
+
+  -- Ensure created_at column exists in allowed_emails
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'allowed_emails') THEN
+    -- If requested_at column exists, rename to created_at
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='allowed_emails' AND column_name='requested_at')
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='allowed_emails' AND column_name='created_at') THEN
+      ALTER TABLE public.allowed_emails RENAME COLUMN requested_at TO created_at;
+    END IF;
+
+    -- Add created_at column if it still doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='allowed_emails' AND column_name='created_at') THEN
+      ALTER TABLE public.allowed_emails ADD COLUMN created_at TIMESTAMPTZ DEFAULT NOW();
+    END IF;
+  END IF;
+END $$;
+
+-- Create allowed_emails table for pre-authorized user registration & login
+CREATE TABLE IF NOT EXISTS public.allowed_emails (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  name TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.allowed_emails ENABLE ROW LEVEL SECURITY;
+
+-- Allow public/authenticated users to view and manage allowed_emails
+DROP POLICY IF EXISTS "Allow public select on allowed_emails" ON public.allowed_emails;
+CREATE POLICY "Allow public select on allowed_emails"
+  ON public.allowed_emails FOR ALL
+  TO public
+  USING (true)
+  WITH CHECK (true);
+
+-- Pre-approve default system accounts
+INSERT INTO public.allowed_emails (email, name)
+VALUES 
+  ('kovacs.gabor@ceg.hu', 'Kovács Gábor'),
+  ('kezelo.janos@ceg.hu', 'Kezelő János')
+ON CONFLICT (email) DO NOTHING;
 
 -- Create a trigger to automatically create a profile for new users
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -74,7 +124,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE TRIGGER on_auth_user_created
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 

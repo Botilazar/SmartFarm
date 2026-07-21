@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Sprout, Search, Bell, LogOut, LayoutDashboard, Package,
-  Plus, ArrowLeftRight, QrCode, Users as UsersIcon,
+  Plus, ArrowLeftRight, QrCode, Users as UsersIcon, ShieldCheck,
   Settings as SettingsIcon, ArrowUpRight, ArrowDownRight, ArrowLeft, ChevronRight
 } from 'lucide-react';
 import { dbService } from '../db/dbService';
@@ -17,6 +17,7 @@ import { MaterialsView } from './MaterialsView';
 import { MovementsView } from './MovementsView';
 import { QrCodesView } from './QrCodesView';
 import { UsersView } from './UsersView';
+import { AllowedEmailsView } from './AllowedEmailsView';
 import { SettingsView } from './SettingsView';
 import { TransactionModal } from './TransactionModal';
 import { QrPrintModal } from './QrPrintModal';
@@ -31,9 +32,9 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpdate }) => {
   const { t, language } = useTranslation();
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'materials' | 'movements' | 'qr-codes' | 'users' | 'settings'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'materials' | 'movements' | 'qr-codes' | 'users' | 'allowed-emails' | 'settings'>('dashboard');
   const [mobileTab, setMobileTab] = useState<'home' | 'materials' | 'qr' | 'movements' | 'profile'>('home');
-  const [profileSubView, setProfileSubView] = useState<'none' | 'qr-codes' | 'users'>('none');
+  const [profileSubView, setProfileSubView] = useState<'none' | 'qr-codes' | 'users' | 'allowed-emails'>('none');
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   // Data states
@@ -177,6 +178,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+
 
   // Trigger toast helper
   const triggerToast = (tx: Transaction) => {
@@ -366,6 +369,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
 
   // Handle User Role Update
   const handleUpdateUserRole = async (userId: string, newRole: 'admin' | 'operator') => {
+    const targetUser = users.find(u => u.id === userId);
+    if (targetUser && targetUser.email.toLowerCase() === user.email.toLowerCase()) {
+      alert('Saját jogosultságodat biztonsági okokból nem módosíthatod!');
+      return;
+    }
     try {
       await dbService.updateUserProfileRole(userId, newRole);
       await loadData();
@@ -436,13 +444,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               <span>{t('navQrCodes')}</span>
             </button>
             {user.role === 'admin' && (
-              <button
-                className={`nav-item ${activeView === 'users' ? 'active' : ''}`}
-                onClick={() => setActiveView('users')}
-              >
-                <UsersIcon size={18} />
-                <span>{t('navUsers')}</span>
-              </button>
+              <>
+                <button
+                  className={`nav-item ${activeView === 'users' ? 'active' : ''}`}
+                  onClick={() => setActiveView('users')}
+                >
+                  <UsersIcon size={18} />
+                  <span>{t('navUsers')}</span>
+                </button>
+
+                <button
+                  className={`nav-item ${activeView === 'allowed-emails' ? 'active' : ''}`}
+                  onClick={() => setActiveView('allowed-emails')}
+                >
+                  <ShieldCheck size={18} />
+                  <span>{t('navAllowedEmails')}</span>
+                </button>
+              </>
             )}
             <button
               className={`nav-item ${activeView === 'settings' ? 'active' : ''}`}
@@ -473,15 +491,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 className="search-input"
                 placeholder={t('searchPlaceholder')}
                 value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  if (activeView !== 'materials') setActiveView('materials');
-                }}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
             <div className="header-actions">
               <button
+                type="button"
                 className="btn-secondary"
                 style={{ 
                   width: 'auto', 
@@ -635,7 +651,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               />
             )}
             {activeView === 'users' && user.role === 'admin' && (
-              <UsersView users={users} onUpdateUserRole={handleUpdateUserRole} />
+              <UsersView users={users} currentUserEmail={user.email} onUpdateUserRole={handleUpdateUserRole} />
+            )}
+            {activeView === 'allowed-emails' && user.role === 'admin' && (
+              <AllowedEmailsView currentUserEmail={user.email} />
             )}
             {activeView === 'settings' && (
               <SettingsView isMock={isMock} user={user} onUserUpdate={onUserUpdate} />
@@ -846,18 +865,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                     </button>
 
                     {user.role === 'admin' && (
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontWeight: 600 }}
-                        onClick={() => setProfileSubView('users')}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <UsersIcon size={18} style={{ color: 'var(--primary)' }} />
-                          <span>Felhasználók kezelése</span>
-                        </div>
-                        <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontWeight: 600 }}
+                          onClick={() => setProfileSubView('users')}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <UsersIcon size={18} style={{ color: 'var(--primary)' }} />
+                            <span>Felhasználók kezelése</span>
+                          </div>
+                          <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontWeight: 600 }}
+                          onClick={() => setProfileSubView('allowed-emails')}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <ShieldCheck size={18} style={{ color: 'var(--primary)' }} />
+                            <span>Engedélyezett e-mailek</span>
+                          </div>
+                          <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
+                        </button>
+                      </>
                     )}
                   </div>
 
@@ -895,7 +929,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                   >
                     <ArrowLeft size={16} /> Vissza a profilhoz
                   </button>
-                  <UsersView users={users} onUpdateUserRole={handleUpdateUserRole} />
+                  <UsersView users={users} currentUserEmail={user.email} onUpdateUserRole={handleUpdateUserRole} />
+                </div>
+              )}
+
+              {profileSubView === 'allowed-emails' && user.role === 'admin' && (
+                <div>
+                  <button
+                    onClick={() => setProfileSubView('none')}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: 'var(--primary)', fontWeight: 600, fontSize: '13px' }}
+                  >
+                    <ArrowLeft size={16} /> Vissza a profilhoz
+                  </button>
+                  <AllowedEmailsView currentUserEmail={user.email} />
                 </div>
               )}
             </div>
