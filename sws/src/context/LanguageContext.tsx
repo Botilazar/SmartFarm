@@ -41,6 +41,7 @@ const translations: Record<Language, Record<string, string>> = {
     saving: 'Mentés...',
     savingData: 'Adatok mentése...',
     cancel: 'Mégse',
+    btnExportCSV: 'Exportálás CSV-be',
 
     // Dashboard Overview
     dbTitle: 'Főáttekintő dashboard',
@@ -64,6 +65,13 @@ const translations: Record<Language, Record<string, string>> = {
     statLocation: 'HELY',
     comparedToLastWeek: 'az előző héthez képest',
     comparedToYesterday: 'az előző naphoz képest',
+    dbConsumptionTitle: 'Havi fogyasztási trend',
+    dbForecastTitle: 'Készlet-előrejelzés',
+    dbForecastStable: 'Minden készletszint stabil a jelenlegi fogyasztás alapján.',
+    dbForecastRisk: 'Kifogyási kockázat',
+    dbForecastDaysLeft: 'napra elegendő készlet',
+    dbForecastReorder: 'Javasolt utánrendelés',
+    dbDemoDataNotice: 'Demó adatokat lát (valós készletmozgások hiányában)',
 
     // Materials View
     matTitle: 'Raktárkészlet',
@@ -246,6 +254,7 @@ const translations: Record<Language, Record<string, string>> = {
     saving: 'Saving...',
     savingData: 'Saving Data...',
     cancel: 'Cancel',
+    btnExportCSV: 'Export to CSV',
 
     // Dashboard Overview
     dbTitle: 'Dashboard Overview',
@@ -269,6 +278,13 @@ const translations: Record<Language, Record<string, string>> = {
     statLocation: 'LOCATION',
     comparedToLastWeek: 'compared to last week',
     comparedToYesterday: 'compared to yesterday',
+    dbConsumptionTitle: 'Monthly Consumption Trend',
+    dbForecastTitle: 'Smart Stock Forecast',
+    dbForecastStable: 'All stock levels stable based on current usage.',
+    dbForecastRisk: 'Risk of running out',
+    dbForecastDaysLeft: 'days of supply left',
+    dbForecastReorder: 'Recommended reorder',
+    dbDemoDataNotice: 'Showing demo data (no transactions logged yet)',
 
     // Materials View
     matTitle: 'Warehouse Stock',
@@ -451,6 +467,7 @@ const translations: Record<Language, Record<string, string>> = {
     saving: 'Speichern...',
     savingData: 'Daten werden gespeichert...',
     cancel: 'Abbrechen',
+    btnExportCSV: 'CSV Export',
 
     // Dashboard Overview
     dbTitle: 'Dashboard-Übersicht',
@@ -474,6 +491,13 @@ const translations: Record<Language, Record<string, string>> = {
     statLocation: 'ORT',
     comparedToLastWeek: 'im Vergleich zur Vorwoche',
     comparedToYesterday: 'im Vergleich zu gestern',
+    dbConsumptionTitle: 'Monatlicher Verbrauchstrend',
+    dbForecastTitle: 'Intelligente Bestandsprognose',
+    dbForecastStable: 'Alle Bestände stabil basierend auf der aktuellen Nutzung.',
+    dbForecastRisk: 'Kritische Reichweite',
+    dbForecastDaysLeft: 'Tage Reichweite übrig',
+    dbForecastReorder: 'Empfohlene Nachbestellung',
+    dbDemoDataNotice: 'Demodaten werden angezeigt (noch keine Buchungen vorhanden)',
 
     // Materials View
     matTitle: 'Lagerbestand',

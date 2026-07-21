@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, ArrowUpDown, Download } from 'lucide-react';
 import type { UserProfile } from '../db/dbService';
 import { useTranslation } from '../context/LanguageContext';
 
@@ -12,6 +12,35 @@ export const UsersView: React.FC<UsersViewProps> = ({ users, onUpdateUserRole })
   const { t } = useTranslation();
   const [sortField, setSortField] = useState<'name' | 'email' | 'role' | null>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const handleExportCSV = () => {
+    const headers = [
+      t('usrColName') || 'Név',
+      t('usrColEmail') || 'Email',
+      t('usrColRole') || 'Szerepkör'
+    ];
+
+    const rows = sortedUsers.map(u => [
+      u.name,
+      u.email,
+      u.role === 'admin' ? t('usrRoleAdmin') : t('usrRoleOperator')
+    ]);
+
+    const csvContent = "\uFEFF" + [
+      headers.join(';'),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(';'))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `smartfarm_felhasznalok_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleSort = (field: 'name' | 'email' | 'role') => {
     if (sortField === field) {
@@ -59,7 +88,18 @@ export const UsersView: React.FC<UsersViewProps> = ({ users, onUpdateUserRole })
 
   return (
     <div className="details-card">
-      <h2 className="details-card-title" style={{ marginBottom: '16px' }}>{t('usrTitle')}</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h2 className="details-card-title" style={{ margin: 0 }}>{t('usrTitle')}</h2>
+        <button
+          type="button"
+          className="btn-secondary"
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', width: 'auto', height: '32px', fontSize: '12px' }}
+          onClick={handleExportCSV}
+        >
+          <Download size={14} />
+          <span>{t('btnExportCSV')}</span>
+        </button>
+      </div>
       <div className="data-table-container">
         <table className="data-table">
           <thead>

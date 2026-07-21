@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Package, MapPin, QrCode, Trash2, Pencil, ChevronUp, ChevronDown, ArrowUpDown, Calendar } from 'lucide-react';
+import { Package, MapPin, QrCode, Trash2, Pencil, ChevronUp, ChevronDown, ArrowUpDown, Calendar, Download } from 'lucide-react';
 import { getStockStatus } from '../db/dbService';
 import type { Material } from '../db/dbService';
 import { useTranslation } from '../context/LanguageContext';
@@ -36,6 +36,45 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
   const { t } = useTranslation();
   const [sortField, setSortField] = useState<'name' | 'category' | 'location' | 'stock' | 'unit' | 'expiration' | null>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const handleExportCSV = () => {
+    const headers = [
+      t('statId') || 'Azonosító',
+      t('statName') || 'Név',
+      t('colCategory') || 'Kategória',
+      t('statLocation') || 'Hely',
+      t('statStock') || 'Készlet',
+      t('statMax') || 'Max',
+      t('colUnit') || 'Mértékegység',
+      t('matExpiration') || 'Lejárati idő'
+    ];
+
+    const rows = sortedMaterials.map(m => [
+      m.id,
+      m.name,
+      t(`cat_${m.category}`) || m.category,
+      m.location,
+      m.quantity,
+      m.max_quantity,
+      m.unit,
+      m.expiration_date || ''
+    ]);
+
+    const csvContent = "\uFEFF" + [
+      headers.join(';'),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(';'))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `smartfarm_keszlet_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const checkExpirationStatus = (expDate: string | undefined): 'expired' | 'expiring-soon' | 'ok' | 'none' => {
     if (!expDate) return 'none';
@@ -135,20 +174,31 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 className="mobile-section-title">{t('matTitle')}</h3>
-          <select
-            className="form-select"
-            style={{ width: '130px', padding: '6px', fontSize: '12px' }}
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-          >
-            <option value="All">{t('matAll')}</option>
-            <option value="Permetszerek">{t('cat_Permetszerek')}</option>
-            <option value="Műtrágyák">{t('cat_Műtrágyák')}</option>
-            <option value="Vetőmagok">{t('cat_Vetőmagok')}</option>
-            <option value="Tápok">{t('cat_Tápok')}</option>
-            <option value="Adalékanyagok">{t('cat_Adalékanyagok')}</option>
-            <option value="Egyéb">{t('cat_Egyéb')}</option>
-          </select>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <select
+              className="form-select"
+              style={{ width: '110px', padding: '6px', fontSize: '12px' }}
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              <option value="All">{t('matAll')}</option>
+              <option value="Permetszerek">{t('cat_Permetszerek')}</option>
+              <option value="Műtrágyák">{t('cat_Műtrágyák')}</option>
+              <option value="Vetőmagok">{t('cat_Vetőmagok')}</option>
+              <option value="Tápok">{t('cat_Tápok')}</option>
+              <option value="Adalékanyagok">{t('cat_Adalékanyagok')}</option>
+              <option value="Egyéb">{t('cat_Egyéb')}</option>
+            </select>
+            <button
+              type="button"
+              className="btn-secondary"
+              style={{ padding: '6px 8px', width: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              onClick={handleExportCSV}
+              title={t('btnExportCSV')}
+            >
+              <Download size={15} />
+            </button>
+          </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -244,12 +294,16 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
   // Desktop View
   return (
     <div className="details-card" style={{ width: '100%' }}>
-      <div className="details-card-header" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+      {/* Title block */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
         <div>
-          <h2 className="details-card-title">{t('matTitle')}</h2>
-          <p className="page-subtitle">{t('matSubtitle')}</p>
+          <h2 className="details-card-title" style={{ margin: 0 }}>{t('matTitle')}</h2>
+          <p className="page-subtitle" style={{ margin: 0 }}>{t('matSubtitle')}</p>
         </div>
-        
+      </div>
+      
+      {/* Filters & Export Row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px', width: '100%' }}>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>{t('matCategories')}</span>
           <div style={{ display: 'flex', gap: '6px', backgroundColor: 'var(--bg-app)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)' }}>
@@ -275,6 +329,16 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
             ))}
           </div>
         </div>
+        
+        <button
+          type="button"
+          className="btn-secondary"
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', width: 'auto', height: '34px', fontSize: '12px' }}
+          onClick={handleExportCSV}
+        >
+          <Download size={14} />
+          <span>{t('btnExportCSV')}</span>
+        </button>
       </div>
 
       <div className="data-table-container">

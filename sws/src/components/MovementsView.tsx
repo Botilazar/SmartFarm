@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowUpRight, ArrowDownRight, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, ChevronUp, ChevronDown, ArrowUpDown, Download } from 'lucide-react';
 import type { Transaction } from '../db/dbService';
 import { useTranslation } from '../context/LanguageContext';
 
@@ -16,6 +16,43 @@ export const MovementsView: React.FC<MovementsViewProps> = ({
   const [selectedNotes, setSelectedNotes] = useState<string | null>(null);
   const [sortField, setSortField] = useState<'timestamp' | 'material_id' | 'material_name' | 'type' | 'quantity' | 'user_name' | 'notes' | null>('timestamp');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const handleExportCSV = () => {
+    const headers = [
+      t('movColDate') || 'Dátum',
+      t('statId') || 'Azonosító',
+      t('statName') || 'Név',
+      t('movColType') || 'Típus',
+      t('movColQty') || 'Mennyiség',
+      t('movColUser') || 'Felhasználó',
+      t('movColNotes') || 'Megjegyzés'
+    ];
+
+    const rows = sortedTransactions.map(tx => [
+      formatDateTime(tx.timestamp),
+      tx.material_id,
+      tx.material_name,
+      tx.type === 'intake' ? t('movTypeIntake') : t('movTypeCheckout'),
+      `${tx.quantity} ${tx.unit || ''}`,
+      tx.user_name,
+      tx.notes || ''
+    ]);
+
+    const csvContent = "\uFEFF" + [
+      headers.join(';'),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(';'))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `smartfarm_mozgasok_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleSort = (field: 'timestamp' | 'material_id' | 'material_name' | 'type' | 'quantity' | 'user_name' | 'notes') => {
     if (sortField === field) {
@@ -107,7 +144,18 @@ export const MovementsView: React.FC<MovementsViewProps> = ({
   if (isMobile) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <h3 className="mobile-section-title">{t('movTitle')}</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 className="mobile-section-title" style={{ margin: 0 }}>{t('movTitle')}</h3>
+          <button
+            type="button"
+            className="btn-secondary"
+            style={{ padding: '6px 8px', width: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={handleExportCSV}
+            title={t('btnExportCSV')}
+          >
+            <Download size={15} />
+          </button>
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {sortedTransactions.map((tItem) => (
             <div key={tItem.id} className="mobile-stock-card" style={{ padding: '12px' }}>
@@ -189,11 +237,20 @@ export const MovementsView: React.FC<MovementsViewProps> = ({
   // Desktop view
   return (
     <div className="details-card" style={{ width: '100%' }}>
-      <div className="details-card-header">
+      <div className="details-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h2 className="details-card-title">{t('movTitle')}</h2>
           <p className="page-subtitle">{t('movSubtitle')}</p>
         </div>
+        <button
+          type="button"
+          className="btn-secondary"
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', width: 'auto', height: '34px', fontSize: '12px' }}
+          onClick={handleExportCSV}
+        >
+          <Download size={14} />
+          <span>{t('btnExportCSV')}</span>
+        </button>
       </div>
 
       <div className="data-table-container">

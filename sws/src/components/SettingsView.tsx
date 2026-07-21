@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../db/supabaseClient';
 import { Camera, Save, User, RefreshCw, AlertCircle, Check, Trash2 } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
@@ -14,6 +14,101 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
 
   // Form States
   const [name, setName] = useState(user.name);
+  const [dbStats, setDbStats] = useState<{
+    db_size_bytes: number;
+    transactions_size_bytes: number;
+    materials_size_bytes: number;
+    profiles_size_bytes: number;
+  } | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
+
+  const calculateLocalStorageStats = () => {
+    const materialsStr = localStorage.getItem('smartfarm_materials') || '[]';
+    const transactionsStr = localStorage.getItem('smartfarm_transactions') || '[]';
+    const usersStr = localStorage.getItem('smartfarm_users') || '[]';
+    const profilesStr = localStorage.getItem('smartfarm_profiles') || '[]';
+    
+    const materialsBytes = new Blob([materialsStr]).size;
+    const transactionsBytes = new Blob([transactionsStr]).size;
+    const profilesBytes = new Blob([profilesStr]).size + new Blob([usersStr]).size;
+    
+    let totalBytes = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        totalBytes += new Blob([localStorage.getItem(key) || '']).size;
+      }
+    }
+    
+    setDbStats({
+      db_size_bytes: totalBytes,
+      transactions_size_bytes: transactionsBytes,
+      materials_size_bytes: materialsBytes,
+      profiles_size_bytes: profilesBytes
+    });
+  };
+
+  const fetchStatsFallback = async () => {
+    try {
+      const { count: transCount } = await supabase!
+        .from('transactions')
+        .select('*', { count: 'exact', head: true });
+        
+      const { data: materialsData } = await supabase!
+        .from('materials')
+        .select('name, location, image_url');
+        
+      const { count: profsCount } = await supabase!
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+
+      const materialsBytes = (materialsData || []).reduce((sum, m) => {
+        return sum + (m.name?.length || 0) * 2 + (m.location?.length || 0) * 2 + (m.image_url?.length || 0) + 150;
+      }, 0);
+
+      const transBytes = (transCount || 0) * 350;
+      const profilesBytes = (profsCount || 0) * 250;
+      const totalEstimatedBytes = transBytes + materialsBytes + profilesBytes + 1024 * 1024; // 1MB base pg footprint
+
+      setDbStats({
+        db_size_bytes: totalEstimatedBytes,
+        transactions_size_bytes: transBytes,
+        materials_size_bytes: materialsBytes,
+        profiles_size_bytes: profilesBytes
+      });
+    } catch (err: any) {
+      throw new Error("Sikertelen méretbecslés: " + err.message);
+    }
+  };
+
+  const fetchDbStats = async () => {
+    if (user.role !== 'admin') return;
+    setStatsLoading(true);
+    setStatsError(null);
+    try {
+      if (!isMock && isSupabaseConfigured) {
+        const { data, error } = await supabase!.rpc('get_database_stats');
+        if (error) {
+          console.warn("RPC get_database_stats failed, falling back to estimation:", error);
+          await fetchStatsFallback();
+        } else {
+          setDbStats(data);
+        }
+      } else {
+        calculateLocalStorageStats();
+      }
+    } catch (err: any) {
+      console.error("Error fetching db stats:", err);
+      setStatsError(err.message || 'Sikertelen betöltés');
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDbStats();
+  }, []);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(user.avatar_url || null);
   const [oldPassword, setOldPassword] = useState('');
@@ -519,6 +614,70 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
             </button>
           </div>
         </div>
+
+        {/* Admin Database Stats Section */}
+        {user.role === 'admin' && (
+          <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border)', textAlign: 'left' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Adatbázis Rendszergazda Info</span>
+              <button 
+                type="button" 
+                onClick={fetchDbStats} 
+                disabled={statsLoading} 
+                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600 }}
+              >
+                <RefreshCw size={14} className={statsLoading ? "spin-animation" : ""} style={{ animation: statsLoading ? 'spin 1s linear infinite' : 'none' }} />
+                Frissítés
+              </button>
+            </h3>
+
+            {statsError ? (
+              <div style={{ color: 'var(--danger)', fontSize: '13px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <AlertCircle size={16} />
+                <span>{statsError}</span>
+              </div>
+            ) : dbStats ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* Progress bar */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 500 }}>
+                    <span>Összes felhasznált tárhely:</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                      {(dbStats.db_size_bytes / (1024 * 1024)).toFixed(2)} MB / {isMock ? '5' : '500'} MB
+                    </span>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--bg-app)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div 
+                      style={{ 
+                        height: '100%', 
+                        backgroundColor: (dbStats.db_size_bytes / (1024 * 1024)) > (isMock ? 4 : 400) ? 'var(--danger)' : 'var(--primary)',
+                        width: `${Math.min(100, (dbStats.db_size_bytes / (1024 * 1024)) / (isMock ? 5 : 500) * 100)}%`,
+                        transition: 'width 0.4s ease'
+                      }} 
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px', marginTop: '4px' }}>
+                  <div style={{ padding: '10px', backgroundColor: 'var(--bg-app)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Készletmozgások (Logok)</span>
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      {(dbStats.transactions_size_bytes / (1024 * 1024)).toFixed(3)} MB
+                    </span>
+                  </div>
+                  <div style={{ padding: '10px', backgroundColor: 'var(--bg-app)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Anyagok (Termékek)</span>
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      {(dbStats.materials_size_bytes / (1024 * 1024)).toFixed(3)} MB
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Méretek lekérése...</div>
+            )}
+          </div>
+        )}
 
         {/* Buttons row */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Sprout, Package, ArrowLeftRight, ShieldAlert, ArrowUpRight, ArrowDownRight, ChevronRight,
-  QrCode, Plus, ChevronUp, ChevronDown, ArrowUpDown
+  QrCode, Plus, ChevronUp, ChevronDown, ArrowUpDown, TrendingUp
 } from 'lucide-react';
 import { getStockStatus } from '../db/dbService';
 import type { Material, Transaction } from '../db/dbService';
@@ -41,6 +41,285 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 }) => {
   const { t, language } = useTranslation();
   const [selectedNotes, setSelectedNotes] = React.useState<string | null>(null);
+  const [trendCategory, setTrendCategory] = React.useState<string>('Permetszerek');
+
+  // Get last 5 months dynamically in local language
+  const getLastFiveMonths = () => {
+    const monthNamesHU = ['Január', 'Február', 'Március', 'Április', 'Május', 'Június', 'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December'];
+    const monthNamesEN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthNamesDE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+    
+    const list = [];
+    const today = new Date();
+    for (let i = 4; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const monthIdx = d.getMonth();
+      const name = language === 'hu' ? monthNamesHU[monthIdx]
+                 : language === 'en' ? monthNamesEN[monthIdx]
+                 : monthNamesDE[monthIdx];
+      list.push({ monthIndex: monthIdx, year: d.getFullYear(), name });
+    }
+    return list;
+  };
+
+  const categoryDemoData: Record<string, number[]> = {
+    'Permetszerek': [8, 12, 35, 42, 18],
+    'Műtrágyák': [0, 100, 300, 450, 150],
+    'Vetőmagok': [10, 40, 120, 80, 20],
+    'Tápok': [40, 90, 70, 50, 60],
+    'Adalékanyagok': [0, 2, 10, 15, 5],
+    'Egyéb': [4, 6, 15, 12, 8]
+  };
+
+  const months = getLastFiveMonths();
+  let isUsingDemoData = false;
+
+  const monthlyValues = months.map((m) => {
+    const matchTxs = transactions.filter(t => {
+      if (t.type !== 'checkout') return false;
+      const tDate = new Date(t.timestamp);
+      if (tDate.getFullYear() !== m.year || tDate.getMonth() !== m.monthIndex) return false;
+      
+      const mIdPrefix = t.material_id.slice(0, 3);
+      const cat = mIdPrefix === 'PRM' ? 'Permetszerek'
+                : mIdPrefix === 'MUT' ? 'Műtrágyák'
+                : mIdPrefix === 'VET' ? 'Vetőmagok'
+                : mIdPrefix === 'TAP' ? 'Tápok'
+                : mIdPrefix === 'ADL' ? 'Adalékanyagok'
+                : 'Egyéb';
+      return cat === trendCategory;
+    });
+    
+    return matchTxs.reduce((sum, t) => sum + Math.abs(t.quantity), 0);
+  });
+
+  const totalActualSum = monthlyValues.reduce((sum, val) => sum + val, 0);
+  const finalMonthlyValues = totalActualSum > 0 ? monthlyValues : (categoryDemoData[trendCategory] || [10, 20, 30, 40, 50]);
+  if (totalActualSum === 0) {
+    isUsingDemoData = true;
+  }
+
+  const avgMonthlyUsage = React.useMemo(() => {
+    const totalUsage = finalMonthlyValues.reduce((sum, val) => sum + val, 0);
+    return Math.round((totalUsage / 5) * 10) / 10;
+  }, [finalMonthlyValues]);
+
+  const materialForecasts = React.useMemo(() => {
+    const catMaterials = materials.filter(m => m.category === trendCategory);
+    
+    return catMaterials.map(m => {
+      const actualTxs = transactions.filter(t => t.type === 'checkout' && t.material_id === m.id);
+      const actualUsageTotal = actualTxs.reduce((sum, t) => sum + Math.abs(t.quantity), 0);
+      let mAvgUsage = actualUsageTotal / 5;
+      
+      if (mAvgUsage === 0 && isUsingDemoData) {
+        mAvgUsage = Math.round((m.max_quantity * 0.3) * 10) / 10;
+      }
+      
+      if (mAvgUsage === 0) mAvgUsage = 0.5;
+      
+      const monthsLeft = m.quantity / mAvgUsage;
+      const daysLeft = Math.round(monthsLeft * 30);
+      const reorderQty = daysLeft <= 30 ? Math.max(0, Math.round((m.max_quantity - m.quantity) * 10) / 10) : 0;
+      
+      return {
+        material: m,
+        avgUsage: mAvgUsage,
+        daysLeft,
+        reorderQty
+      };
+    });
+  }, [materials, transactions, trendCategory, isUsingDemoData]);
+
+  const materialsAtRisk = React.useMemo(() => {
+    return materialForecasts
+      .filter(item => item.daysLeft <= 30)
+      .sort((a, b) => a.daysLeft - b.daysLeft);
+  }, [materialForecasts]);
+
+  const renderConsumptionChart = () => {
+    const monthsList = getLastFiveMonths();
+    const maxValue = Math.max(...finalMonthlyValues, 10);
+    
+    const svgWidth = 450;
+    const svgHeight = 220;
+    const paddingLeft = 45;
+    const paddingRight = 15;
+    const paddingTop = 20;
+    const paddingBottom = 30;
+    
+    const chartWidth = svgWidth - paddingLeft - paddingRight;
+    const chartHeight = svgHeight - paddingTop - paddingBottom;
+    const barWidth = 32;
+    const barSpacing = chartWidth / monthsList.length;
+    
+    const getCategoryUnit = (cat: string) => {
+      if (cat === 'Permetszerek' || cat === 'Adalékanyagok') return 'l';
+      if (cat === 'Műtrágyák' || cat === 'Tápok' || cat === 'Vetőmagok') return 'kg';
+      return 'db';
+    };
+    
+    const unit = getCategoryUnit(trendCategory);
+    
+    return (
+      <div className="details-card" style={{ flex: 1.5, minWidth: '300px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+          <div>
+            <h3 className="details-card-title">{t('dbConsumptionTitle')}</h3>
+            {isUsingDemoData && (
+              <span style={{ fontSize: '9px', color: 'var(--warning)', fontStyle: 'italic', display: 'block' }}>
+                {t('dbDemoDataNotice')}
+              </span>
+            )}
+          </div>
+          <select 
+            className="form-select" 
+            style={{ width: '135px', padding: '6px', fontSize: '11px', height: '28px' }}
+            value={trendCategory}
+            onChange={(e) => setTrendCategory(e.target.value)}
+          >
+            <option value="Permetszerek">{t('cat_Permetszerek')}</option>
+            <option value="Műtrágyák">{t('cat_Műtrágyák')}</option>
+            <option value="Vetőmagok">{t('cat_Vetőmagok')}</option>
+            <option value="Tápok">{t('cat_Tápok')}</option>
+            <option value="Adalékanyagok">{t('cat_Adalékanyagok')}</option>
+            <option value="Egyéb">{t('cat_Egyéb')}</option>
+          </select>
+        </div>
+        
+        <div style={{ position: 'relative', width: '100%', height: `${svgHeight}px` }}>
+          <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%" height="100%">
+            {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
+              const y = paddingTop + chartHeight * (1 - ratio);
+              const gridVal = Math.round(maxValue * ratio);
+              return (
+                <g key={`grid-${idx}`}>
+                  <line 
+                    x1={paddingLeft} 
+                    y1={y} 
+                    x2={svgWidth - paddingRight} 
+                    y2={y} 
+                    stroke="var(--border)" 
+                    strokeWidth="1" 
+                    strokeDasharray="4 4" 
+                  />
+                  <text 
+                    x={paddingLeft - 8} 
+                    y={y + 4} 
+                    fill="var(--text-secondary)" 
+                    fontSize="10" 
+                    textAnchor="end"
+                  >
+                    {gridVal} {unit}
+                  </text>
+                </g>
+              );
+            })}
+            
+            {monthsList.map((m, idx) => {
+              const val = finalMonthlyValues[idx];
+              const pct = val / maxValue;
+              const barHeight = chartHeight * pct;
+              const x = paddingLeft + (idx * barSpacing) + (barSpacing - barWidth) / 2;
+              const y = paddingTop + chartHeight - barHeight;
+              
+              return (
+                <g key={`bar-${idx}`}>
+                  <rect
+                    x={x}
+                    y={y}
+                    width={barWidth}
+                    height={Math.max(barHeight, 2)}
+                    rx="4"
+                    fill="var(--primary)"
+                    style={{
+                      transition: 'all 0.4s ease',
+                      cursor: 'pointer',
+                      opacity: 0.85
+                    }}
+                  />
+                  <text
+                    x={x + barWidth / 2}
+                    y={y - 6}
+                    fill="var(--text-primary)"
+                    fontSize="9"
+                    fontWeight="700"
+                    textAnchor="middle"
+                  >
+                    {val > 0 ? `${val}` : ''}
+                  </text>
+                  <text
+                    x={x + barWidth / 2}
+                    y={paddingTop + chartHeight + 16}
+                    fill="var(--text-secondary)"
+                    fontSize="10"
+                    fontWeight="500"
+                    textAnchor="middle"
+                  >
+                    {m.name}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      </div>
+    );
+  };
+
+  const renderForecastingCard = () => {
+    const unit = trendCategory === 'Permetszerek' || trendCategory === 'Adalékanyagok' ? 'l' : trendCategory === 'Műtrágyák' || trendCategory === 'Tápok' || trendCategory === 'Vetőmagok' ? 'kg' : 'db';
+    
+    return (
+      <div className="details-card" style={{ flex: 1, minWidth: '260px' }}>
+        <div className="details-card-header" style={{ marginBottom: '16px' }}>
+          <h3 className="details-card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+            <TrendingUp size={18} style={{ color: 'var(--primary)' }} />
+            <span>{t('dbForecastTitle')}</span>
+          </h3>
+        </div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: 'var(--bg-app)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <div>
+              <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Havi átlagos fogyás</span>
+              <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>{avgMonthlyUsage} {unit}</span>
+            </div>
+            <TrendingUp size={20} style={{ color: 'var(--primary)', opacity: 0.8 }} />
+          </div>
+
+          <div style={{ flex: 1, marginTop: '8px' }}>
+            <h4 style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px', textTransform: 'uppercase' }}>
+              {t('dbForecastRisk')}
+            </h4>
+            
+            {materialsAtRisk.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '90px', textAlign: 'center', padding: '10px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 600 }}>✓ {t('dbForecastStable')}</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '110px', overflowY: 'auto', paddingRight: '4px' }}>
+                {materialsAtRisk.map(({ material, daysLeft, reorderQty }) => (
+                  <div key={material.id} style={{ padding: '8px 10px', border: '1px solid rgba(239, 68, 68, 0.15)', backgroundColor: 'rgba(239, 68, 68, 0.02)', borderRadius: '8px', fontSize: '11px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, marginBottom: '2px' }}>
+                      <span style={{ color: 'var(--text-primary)' }}>{material.name}</span>
+                      <span style={{ color: 'var(--danger)' }}>~{daysLeft} {t('dbForecastDaysLeft').split(' ')[0]}</span>
+                    </div>
+                    {reorderQty > 0 && (
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '10px', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{t('dbForecastReorder')}:</span>
+                        <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{reorderQty} {material.unit}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const checkExpirationStatus = (expDate: string | undefined): 'expired' | 'expiring-soon' | 'ok' | 'none' => {
     if (!expDate) return 'none';
@@ -393,6 +672,12 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           )}
         </div>
 
+        {/* Mobile consumption trend and prediction forecast row */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+          {renderConsumptionChart()}
+          {renderForecastingCard()}
+        </div>
+
         {/* Mobile recent movements list */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <span className="mobile-section-title">{t('movTitle')}</span>
@@ -700,6 +985,12 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           </div>
           {renderDonutChart()}
         </div>
+      </div>
+
+      {/* Consumption Trend & Smart Prediction Forecast Row */}
+      <div className="dashboard-details-grid" style={{ gridTemplateColumns: '1.5fr 1fr', gap: '20px', marginTop: '24px', marginBottom: '24px' }}>
+        {renderConsumptionChart()}
+        {renderForecastingCard()}
       </div>
 
       <div className="dashboard-details-grid" style={{ gridTemplateColumns: '1fr 1.5fr' }}>

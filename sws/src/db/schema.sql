@@ -77,3 +77,32 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Create RPC function to retrieve database and table size stats for administrators
+CREATE OR REPLACE FUNCTION public.get_database_stats()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  db_size BIGINT;
+  trans_size BIGINT;
+  mats_size BIGINT;
+  profs_size BIGINT;
+BEGIN
+  -- Total database size
+  SELECT pg_database_size(current_database()) INTO db_size;
+  
+  -- Table sizes including index footprints
+  SELECT pg_total_relation_size('public.transactions') INTO trans_size;
+  SELECT pg_total_relation_size('public.materials') INTO mats_size;
+  SELECT pg_total_relation_size('public.profiles') INTO profs_size;
+  
+  RETURN jsonb_build_object(
+    'db_size_bytes', db_size,
+    'transactions_size_bytes', trans_size,
+    'materials_size_bytes', mats_size,
+    'profiles_size_bytes', profs_size
+  );
+END;
+$$;
