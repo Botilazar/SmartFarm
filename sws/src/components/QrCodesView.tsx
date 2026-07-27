@@ -72,6 +72,9 @@ export const QrCodesView: React.FC<QrCodesViewProps> = ({
       pages.push(quadrantChunks.slice(i, i + 4));
     }
 
+    const noLocText = t('qrNoLocation') || 'Nincs megadva';
+    const docTitle = (t('qrPrintDocumentTitle') || 'SmartFarm - QR Kódok A4 Nyomtatása ({count} db)').replace('{count}', String(selectedMaterials.length));
+
     const pagesHtml = pages.map((pageQuadrants, pageIdx) => {
       const quadrantsHtml = pageQuadrants.map((quadrantItems) => {
         const miniCardsHtml = quadrantItems.map(m => `
@@ -79,7 +82,7 @@ export const QrCodesView: React.FC<QrCodesViewProps> = ({
             ${m.qr_code_url ? `<img src="${m.qr_code_url}" alt="${m.name}" />` : `<div class="qr-placeholder">QR</div>`}
             <div class="qr-id">${m.id}</div>
             <div class="qr-name">${m.name}</div>
-            <div class="qr-location">${m.location || 'Nincs megadva'}</div>
+            <div class="qr-location">${m.location || noLocText}</div>
           </div>
         `).join('');
 
@@ -105,7 +108,7 @@ export const QrCodesView: React.FC<QrCodesViewProps> = ({
       <!DOCTYPE html>
       <html>
         <head>
-          <title>SmartFarm - QR Kódok A4 Nyomtatása (${selectedMaterials.length} db)</title>
+          <title>${docTitle}</title>
           <style>
             @page {
               size: A4 portrait;
@@ -232,6 +235,13 @@ export const QrCodesView: React.FC<QrCodesViewProps> = ({
     printWin.document.close();
   };
 
+  const selectedText = (t('qrSelectedCounter') || 'Kijelölve: {selected} / {total} anyag')
+    .replace('{selected}', String(selectedIds.size))
+    .replace('{total}', String(materials.length));
+
+  const printBtnText = (t('qrPrintSelected') || 'Kijelöltek nyomtatása ({count} db)')
+    .replace('{count}', String(selectedIds.size));
+
   return (
     <div className="details-card" style={{ width: '100%' }}>
       <div className="details-card-header" style={{ flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
@@ -248,7 +258,7 @@ export const QrCodesView: React.FC<QrCodesViewProps> = ({
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px 14px' }}
           >
             {allFilteredSelected ? <CheckSquare size={18} style={{ color: 'var(--primary)' }} /> : <Square size={18} />}
-            <span>{allFilteredSelected ? 'Kijelölés törlése' : 'Összes kijelölése'}</span>
+            <span>{allFilteredSelected ? t('qrDeselectAll') : t('qrSelectAll')}</span>
           </button>
 
           <button
@@ -267,7 +277,7 @@ export const QrCodesView: React.FC<QrCodesViewProps> = ({
             }}
           >
             <Printer size={18} />
-            <span>Kijelöltek nyomtatása ({selectedIds.size} db)</span>
+            <span>{printBtnText}</span>
           </button>
         </div>
       </div>
@@ -279,21 +289,21 @@ export const QrCodesView: React.FC<QrCodesViewProps> = ({
           <input
             type="text"
             className="input-with-icon"
-            placeholder="Keresés név, ID vagy helyszín alapján..."
+            placeholder={t('qrSearchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
         <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
-          Kijelölve: <strong style={{ color: 'var(--primary)' }}>{selectedIds.size}</strong> / {materials.length} anyag
+          {selectedText}
         </div>
       </div>
 
       {/* Grid of QR Code Cards */}
       {filteredMaterials.length === 0 ? (
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          Nincs a keresési feltételnek megfelelő anyag.
+          {t('qrNoMatchingMaterials')}
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
@@ -332,7 +342,7 @@ export const QrCodesView: React.FC<QrCodesViewProps> = ({
                 {/* Single Print Button */}
                 <button
                   type="button"
-                  title="Egyedi nyomtatás"
+                  title={t('qrSinglePrintTitle')}
                   style={{
                     position: 'absolute',
                     top: '10px',
@@ -372,7 +382,7 @@ export const QrCodesView: React.FC<QrCodesViewProps> = ({
                   {m.name}
                 </span>
                 <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                  {m.location || 'Nincs megadva'}
+                  {m.location || (t('qrNoLocation') || 'Nincs megadva')}
                 </span>
               </div>
             );

@@ -43,11 +43,12 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
 
   const handleDelete = async (item: AllowedEmail) => {
     if (currentUserEmail && item.email.toLowerCase() === currentUserEmail.toLowerCase()) {
-      alert('Saját fiókod regisztrációs engedélyét biztonsági okokból nem vonhatod vissza!');
+      alert(t('allowedRevokeSelfError'));
       return;
     }
 
-    if (window.confirm(`Biztosan vissza szeretnéd vonni a(z) ${item.email} regisztrációs engedélyét?`)) {
+    const confirmMsg = (t('allowedRevokeConfirm') || 'Biztosan vissza szeretnéd vonni a(z) {email} regisztrációs engedélyét?').replace('{email}', item.email);
+    if (window.confirm(confirmMsg)) {
       try {
         // Instant optimistic UI update
         setEmails(prev => prev.filter(e => e.id !== item.id));
@@ -65,7 +66,7 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
     setAddError(null);
 
     if (!addEmail.trim()) {
-      setAddError('Kérjük, add meg az e-mail címet!');
+      setAddError(t('allowedModalErrorEmailRequired'));
       return;
     }
 
@@ -102,11 +103,11 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
   }, [emails, searchQuery]);
 
   const handleExportCSV = () => {
-    const headers = ['Email', 'Név / Megjegyzés', 'Engedélyezés dátuma'];
+    const headers = [t('allowedColEmail'), t('allowedColName'), t('allowedColDate')];
     const rows = filteredEmails.map(item => [
       item.email,
       item.name || '',
-      new Date(item.created_at).toLocaleString('hu-HU')
+      new Date(item.created_at).toLocaleString(language === 'hu' ? 'hu-HU' : language === 'de' ? 'de-DE' : 'en-US')
     ]);
 
     const csvContent = "\uFEFF" + [
@@ -118,7 +119,7 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `smartfarm_engedelyezett_emailek_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `smartfarm_allowed_emails_${new Date().toISOString().slice(0, 10)}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -144,10 +145,10 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
               <ShieldCheck size={26} color="var(--primary)" />
-              <h2 className="details-card-title" style={{ margin: 0 }}>Engedélyezett e-mailek</h2>
+              <h2 className="details-card-title" style={{ margin: 0 }}>{t('allowedTitle')}</h2>
             </div>
             <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
-              A raktári alkalmazásba regisztrálásra és belépésre jogosult e-mail címek (Raktárvezetői felület).
+              {t('allowedSubtitle')}
             </p>
           </div>
 
@@ -159,7 +160,7 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '13px', height: '38px', width: 'auto' }}
             >
               <Download size={15} />
-              <span>CSV Export</span>
+              <span>{t('allowedCsvExport')}</span>
             </button>
 
             <button
@@ -172,7 +173,7 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', fontSize: '13px', height: '38px', width: 'auto' }}
             >
               <Plus size={16} />
-              <span>Új e-mail engedélyezése</span>
+              <span>{t('allowedBtnAdd')}</span>
             </button>
           </div>
         </div>
@@ -180,14 +181,14 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
         {/* Search Bar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '14px' }}>
           <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
-            Összesen <strong>{filteredEmails.length}</strong> engedélyezett e-mail cím.
+            {(t('allowedTotalCount') || 'Összesen {count} engedélyezett e-mail cím.').replace('{count}', String(filteredEmails.length))}
           </div>
 
           <div className="search-bar-wrapper" style={{ maxWidth: '280px', margin: 0 }}>
             <Search className="input-icon" size={18} />
             <input
               type="text"
-              placeholder="Keresés név vagy e-mail..."
+              placeholder={t('allowedSearchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="search-input"
@@ -200,18 +201,18 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
       <div className="details-card" style={{ padding: '0', overflow: 'hidden' }}>
         {loading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            Töltés...
+            {t('allowedLoading')}
           </div>
         ) : (
           <div className="data-table-container">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>NÉV / MEGJEGYZÉS</th>
-                  <th>ENGEDÉLYEZETT EMAIL CÍM</th>
-                  <th>ENGEDÉLYEZVE DÁTUM</th>
-                  <th>STÁTUSZ</th>
-                  <th style={{ textAlign: 'right' }}>MŰVELETEK</th>
+                  <th>{t('allowedColName')}</th>
+                  <th>{t('allowedColEmail')}</th>
+                  <th>{t('allowedColDate')}</th>
+                  <th>{t('allowedColStatus')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('allowedColActions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -220,10 +221,10 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
                   return (
                     <tr key={item.id}>
                       <td style={{ fontWeight: 600 }}>
-                        {item.name || 'Engedélyezett Felhasználó'}
+                        {item.name || t('allowedDefaultUser')}
                         {isSelf && (
                           <span style={{ fontSize: '11px', color: 'var(--primary)', marginLeft: '8px', fontWeight: 500 }}>
-                            (Saját fiók)
+                            {t('allowedSelfBadge')}
                           </span>
                         )}
                       </td>
@@ -251,7 +252,7 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
                           }}
                         >
                           <CheckCircle2 size={12} />
-                          Engedélyezve
+                          {t('allowedStatusActive')}
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
@@ -259,7 +260,7 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
                           type="button"
                           disabled={isSelf}
                           onClick={() => !isSelf && handleDelete(item)}
-                          title={isSelf ? 'Saját fiókod regisztrációs engedélyét biztonsági okokból nem vonhatod vissza' : 'Engedély visszavonása'}
+                          title={isSelf ? t('allowedRevokeSelfError') : t('allowedRevokeTitle')}
                           style={{
                             padding: '6px 12px',
                             borderRadius: 'var(--radius-sm)',
@@ -276,7 +277,7 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
                           }}
                         >
                           <Trash2 size={14} />
-                          <span>Visszavonás</span>
+                          <span>{t('allowedBtnRevoke')}</span>
                         </button>
                       </td>
                     </tr>
@@ -286,7 +287,7 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
                 {filteredEmails.length === 0 && (
                   <tr>
                     <td colSpan={5} style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-secondary)' }}>
-                      Nincs megjeleníthető engedélyezett e-mail cím a megadott keresési feltételek alapján.
+                      {t('allowedNoResults')}
                     </td>
                   </tr>
                 )}
@@ -303,9 +304,9 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
             <div className="modal-header">
               <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <ShieldCheck size={20} style={{ color: 'var(--primary)' }} />
-                <span>Új e-mail engedélyezése</span>
+                <span>{t('allowedModalTitle')}</span>
               </div>
-              <button onClick={() => setShowAddModal(false)} type="button" aria-label="Bezárás">
+              <button onClick={() => setShowAddModal(false)} type="button" aria-label={t('qrClose')}>
                 <X size={20} />
               </button>
             </div>
@@ -313,7 +314,7 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
             <form onSubmit={handleAddSubmit}>
               <div className="modal-body">
                 <p style={{ marginTop: 0, marginBottom: '16px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  Add meg a felvenni kívánt e-mail címet! A felhasználó ezzel az e-mail címmel tud majd regisztrálni és belépni a SmartFarm alkalmazásba.
+                  {t('allowedModalDesc')}
                 </p>
 
                 {addError && (
@@ -336,14 +337,14 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
                 )}
 
                 <div className="form-group" style={{ marginBottom: '16px' }}>
-                  <label className="form-label">E-mail cím *</label>
+                  <label className="form-label">{t('allowedModalLabelEmail')}</label>
                   <div className="input-icon-wrapper">
                     <Mail className="input-icon" size={18} />
                     <input
                       type="email"
                       required
                       className="input-with-icon"
-                      placeholder="dolgozo@ceg.hu"
+                      placeholder={t('allowedModalPlaceholderEmail')}
                       value={addEmail}
                       onChange={(e) => setAddEmail(e.target.value)}
                     />
@@ -351,13 +352,13 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
                 </div>
 
                 <div className="form-group" style={{ marginBottom: '0' }}>
-                  <label className="form-label">Név / Megjegyzés (Opcionális)</label>
+                  <label className="form-label">{t('allowedModalLabelName')}</label>
                   <div className="input-icon-wrapper">
                     <User className="input-icon" size={18} />
                     <input
                       type="text"
                       className="input-with-icon"
-                      placeholder="pl. Nagy Péter (Gépkezelő)"
+                      placeholder={t('allowedModalPlaceholderName')}
                       value={addName}
                       onChange={(e) => setAddName(e.target.value)}
                     />
@@ -371,14 +372,14 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
                   className="btn-secondary"
                   onClick={() => setShowAddModal(false)}
                 >
-                  Mégse
+                  {t('allowedModalBtnCancel')}
                 </button>
                 <button
                   type="submit"
                   className="btn-primary"
                   disabled={addLoading}
                 >
-                  {addLoading ? 'Hozzáadás...' : 'Engedélyezés'}
+                  {addLoading ? t('allowedModalBtnLoading') : t('allowedModalBtnSubmit')}
                 </button>
               </div>
             </form>
@@ -388,4 +389,3 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
     </div>
   );
 };
-

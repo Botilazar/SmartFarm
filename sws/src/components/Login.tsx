@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, Building2, Sprout, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../db/supabaseClient';
 import { dbService } from '../db/dbService';
-// import { useTranslation } from '../context/LanguageContext';
+import { useTranslation } from '../context/LanguageContext';
 
 interface LoginProps {
   onLogin: (user: { id: string; name: string; email: string; role: 'admin' | 'operator'; avatar_url?: string }) => void;
@@ -15,7 +15,7 @@ export const Login: React.FC<LoginProps> = ({
   initialView = 'login',
   onPasswordResetComplete
 }) => {
-  // const { t, language } = useTranslation();
+  const { t, language, setLanguage } = useTranslation();
   const [rememberMe, setRememberMe] = useState(() => {
     return localStorage.getItem('smartfarm_remember_me') !== 'false';
   });
@@ -398,7 +398,33 @@ export const Login: React.FC<LoginProps> = ({
   };
 
   return (
-    <div className="login-container">
+    <div className="login-container" style={{ position: 'relative' }}>
+      {/* Top Language Switcher */}
+      <div style={{ position: 'absolute', top: '16px', right: '20px', display: 'flex', gap: '6px', zIndex: 10 }}>
+        {(['hu', 'en', 'de'] as const).map((lang) => (
+          <button
+            key={lang}
+            type="button"
+            onClick={() => setLanguage(lang)}
+            style={{
+              padding: '5px 11px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: language === lang ? 700 : 500,
+              backgroundColor: language === lang ? 'var(--primary)' : 'var(--bg-card)',
+              color: language === lang ? '#ffffff' : 'var(--text-secondary)',
+              border: '1px solid var(--border)',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              transition: 'all 0.2s ease',
+              boxShadow: language === lang ? '0 2px 4px rgba(0,104,55,0.2)' : 'none'
+            }}
+          >
+            {lang}
+          </button>
+        ))}
+      </div>
+
       <div className="brand-header">
         <div className="brand-logo">
           <Sprout size={36} fill="#006837" strokeWidth={1.5} />
@@ -408,8 +434,8 @@ export const Login: React.FC<LoginProps> = ({
 
       {authView === 'login' && (
         <div className="login-card">
-          <h2 className="login-title">Bejelentkezés</h2>
-          <p className="login-subtitle">Lépj be a SmartFarm raktárkezelő rendszerébe</p>
+          <h2 className="login-title">{t('loginCardTitle')}</h2>
+          <p className="login-subtitle">{t('loginCardSubtitle')}</p>
 
           {error && (
             <div
@@ -456,7 +482,7 @@ export const Login: React.FC<LoginProps> = ({
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="form-label" htmlFor="email">
-                Email cím
+                {t('loginLabelEmail')}
               </label>
               <div className="input-icon-wrapper">
                 <Mail className="input-icon" size={18} />
@@ -464,7 +490,7 @@ export const Login: React.FC<LoginProps> = ({
                   id="email"
                   type="email"
                   className="input-with-icon"
-                  placeholder="példa@ceg.hu"
+                  placeholder={t('loginPlaceholderEmail')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -473,7 +499,7 @@ export const Login: React.FC<LoginProps> = ({
 
             <div className="form-group">
               <label className="form-label" htmlFor="password">
-                Jelszó
+                {t('loginLabelPwd')}
               </label>
               <div className="input-icon-wrapper">
                 <Lock className="input-icon" size={18} />
@@ -481,7 +507,7 @@ export const Login: React.FC<LoginProps> = ({
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   className="input-with-icon input-with-icon-right"
-                  placeholder="••••••••••••"
+                  placeholder={t('loginPlaceholderPwd')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -504,7 +530,7 @@ export const Login: React.FC<LoginProps> = ({
                   checked={rememberMe}
                   onChange={(e) => handleRememberMeChange(e.target.checked)}
                 />
-                Emlékezz rám
+                {t('loginRemember')}
               </label>
               <a
                 href="#forgot"
@@ -516,15 +542,15 @@ export const Login: React.FC<LoginProps> = ({
                   setSuccessMessage(null);
                 }}
               >
-                Elfelejtett jelszó?
+                {t('loginForgotPwdLink')}
               </a>
             </div>
 
             <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Belépés...' : 'Belépés'}
+              {loading ? t('loginBtnSubmitLoading') : t('loginBtnSubmit')}
             </button>
 
-            <div className="form-divider">vagy</div>
+            <div className="form-divider">{t('loginOrDivider')}</div>
 
             <button
               type="button"
@@ -536,7 +562,7 @@ export const Login: React.FC<LoginProps> = ({
               }}
             >
               <Building2 size={18} />
-              Regisztráció
+              {t('loginRegisterTitle')}
             </button>
           </form>
         </div>
@@ -544,8 +570,8 @@ export const Login: React.FC<LoginProps> = ({
 
       {authView === 'register' && (
         <div className="login-card">
-          <h2 className="login-title">Regisztráció</h2>
-          <p className="login-subtitle">Hozz létre egy új SmartFarm fiókot</p>
+          <h2 className="login-title">{t('loginRegisterCardTitle')}</h2>
+          <p className="login-subtitle">{t('loginRegisterCardSubtitle')}</p>
 
           {error && (
             <div
@@ -592,7 +618,7 @@ export const Login: React.FC<LoginProps> = ({
           <form onSubmit={handleRegister}>
             <div className="form-group">
               <label className="form-label" htmlFor="fullName">
-                Teljes név
+                {t('loginLabelFullName')}
               </label>
               <div className="input-icon-wrapper">
                 <User className="input-icon" size={18} />
@@ -601,7 +627,7 @@ export const Login: React.FC<LoginProps> = ({
                   type="text"
                   required
                   className="input-with-icon"
-                  placeholder="Kovács Gábor"
+                  placeholder={t('loginRegisterPlaceholderName')}
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                 />
@@ -610,7 +636,7 @@ export const Login: React.FC<LoginProps> = ({
 
             <div className="form-group">
               <label className="form-label" htmlFor="email">
-                Email cím
+                {t('loginLabelEmail')}
               </label>
               <div className="input-icon-wrapper">
                 <Mail className="input-icon" size={18} />
@@ -619,7 +645,7 @@ export const Login: React.FC<LoginProps> = ({
                   type="email"
                   required
                   className="input-with-icon"
-                  placeholder="példa@ceg.hu"
+                  placeholder={t('loginPlaceholderEmail')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -628,7 +654,7 @@ export const Login: React.FC<LoginProps> = ({
 
             <div className="form-group">
               <label className="form-label" htmlFor="password">
-                Jelszó
+                {t('loginLabelPwd')}
               </label>
               <div className="input-icon-wrapper">
                 <Lock className="input-icon" size={18} />
@@ -637,7 +663,7 @@ export const Login: React.FC<LoginProps> = ({
                   type={showPassword ? 'text' : 'password'}
                   required
                   className="input-with-icon input-with-icon-right"
-                  placeholder="••••••••••••"
+                  placeholder={t('loginPlaceholderPwd')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -652,13 +678,11 @@ export const Login: React.FC<LoginProps> = ({
               </div>
             </div>
 
-
-
             <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Fiók létrehozása...' : 'Regisztráció'}
+              {loading ? t('loginRegisterBtnSubmitLoading') : t('loginRegisterBtnSubmit')}
             </button>
 
-            <div className="form-divider">vagy</div>
+            <div className="form-divider">{t('loginOrDivider')}</div>
 
             <button
               type="button"
@@ -669,7 +693,7 @@ export const Login: React.FC<LoginProps> = ({
                 setSuccessMessage(null);
               }}
             >
-              Vissza a bejelentkezéshez
+              {t('loginForgotBackToLogin')}
             </button>
           </form>
         </div>
@@ -677,8 +701,8 @@ export const Login: React.FC<LoginProps> = ({
 
       {authView === 'forgot' && (
         <div className="login-card">
-          <h2 className="login-title">Elfelejtett jelszó</h2>
-          <p className="login-subtitle">Add meg a regisztrált e-mail címed, és küldünk egy visszaállítási linket.</p>
+          <h2 className="login-title">{t('loginForgotCardTitle')}</h2>
+          <p className="login-subtitle">{t('loginForgotCardSubtitle')}</p>
 
           {error && (
             <div
@@ -725,7 +749,7 @@ export const Login: React.FC<LoginProps> = ({
           <form onSubmit={handleForgotPassword}>
             <div className="form-group">
               <label className="form-label" htmlFor="email">
-                Email cím
+                {t('loginLabelEmail')}
               </label>
               <div className="input-icon-wrapper">
                 <Mail className="input-icon" size={18} />
@@ -734,7 +758,7 @@ export const Login: React.FC<LoginProps> = ({
                   type="email"
                   required
                   className="input-with-icon"
-                  placeholder="példa@ceg.hu"
+                  placeholder={t('loginPlaceholderEmail')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -742,10 +766,10 @@ export const Login: React.FC<LoginProps> = ({
             </div>
 
             <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Küldés...' : 'Visszaállítási link küldése'}
+              {loading ? t('loginForgotBtnSubmitLoading') : t('loginForgotBtnSubmit')}
             </button>
 
-            <div className="form-divider">vagy</div>
+            <div className="form-divider">{t('loginOrDivider')}</div>
 
             <button
               type="button"
@@ -756,7 +780,7 @@ export const Login: React.FC<LoginProps> = ({
                 setSuccessMessage(null);
               }}
             >
-              Vissza a bejelentkezéshez
+              {t('loginForgotBackToLogin')}
             </button>
           </form>
         </div>
@@ -764,12 +788,8 @@ export const Login: React.FC<LoginProps> = ({
 
       {authView === 'reset-password' && (
         <div className="login-card">
-          <h2 className="login-title">Új jelszó megadása</h2>
-          <p className="login-subtitle">
-            {isSupabaseConfigured
-              ? 'Add meg az új jelszót a fiókodhoz.'
-              : `Offline mód: Új jelszó beállítása a(z) ${resetEmailTarget || email} fiókhoz.`}
-          </p>
+          <h2 className="login-title">{t('loginResetCardTitle')}</h2>
+          <p className="login-subtitle">{t('loginResetCardSubtitle')}</p>
 
           {error && (
             <div
@@ -816,7 +836,7 @@ export const Login: React.FC<LoginProps> = ({
           <form onSubmit={handleResetPassword}>
             <div className="form-group">
               <label className="form-label" htmlFor="password">
-                Új jelszó
+                {t('loginResetLabelNewPwd')}
               </label>
               <div className="input-icon-wrapper">
                 <Lock className="input-icon" size={18} />
@@ -825,7 +845,7 @@ export const Login: React.FC<LoginProps> = ({
                   type={showPassword ? 'text' : 'password'}
                   required
                   className="input-with-icon input-with-icon-right"
-                  placeholder="••••••••••••"
+                  placeholder={t('loginPlaceholderPwd')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -842,7 +862,7 @@ export const Login: React.FC<LoginProps> = ({
 
             <div className="form-group">
               <label className="form-label" htmlFor="confirmPassword">
-                Új jelszó megerősítése
+                {t('loginResetLabelConfirmPwd')}
               </label>
               <div className="input-icon-wrapper">
                 <Lock className="input-icon" size={18} />
@@ -851,7 +871,7 @@ export const Login: React.FC<LoginProps> = ({
                   type={showConfirmPassword ? 'text' : 'password'}
                   required
                   className="input-with-icon input-with-icon-right"
-                  placeholder="••••••••••••"
+                  placeholder={t('loginPlaceholderPwd')}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
@@ -867,12 +887,12 @@ export const Login: React.FC<LoginProps> = ({
             </div>
 
             <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Mentés...' : 'Jelszó mentése'}
+              {loading ? t('loginResetBtnSubmitLoading') : t('loginResetBtnSubmit')}
             </button>
 
             {!isSupabaseConfigured && (
               <>
-                <div className="form-divider">vagy</div>
+                <div className="form-divider">{t('loginOrDivider')}</div>
                 <button
                   type="button"
                   className="btn-secondary"
@@ -885,7 +905,7 @@ export const Login: React.FC<LoginProps> = ({
                     setResetEmailTarget('');
                   }}
                 >
-                  Mégse
+                  {t('allowedModalBtnCancel')}
                 </button>
               </>
             )}
@@ -902,4 +922,3 @@ export const Login: React.FC<LoginProps> = ({
     </div>
   );
 };
-
