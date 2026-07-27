@@ -216,37 +216,55 @@ const generateSeedMaterials = async (): Promise<Material[]> => {
     });
   }
 
-  // Pre-generate QR Code URLs for all items
-  const fullList = await Promise.all(
-    list.map(async (m) => {
-      try {
-        const qr = await QRCode.toDataURL(m.id);
-        return { ...m, qr_code_url: qr };
-      } catch (err) {
-        console.error('Error generating QR code for', m.id, err);
-        return m;
-      }
-    })
-  );
+  // Batch QR code generation in smaller chunks to avoid freezing main thread
+  const fullList: Material[] = [];
+  const chunkSize = 30;
+  for (let i = 0; i < list.length; i += chunkSize) {
+    const chunk = list.slice(i, i + chunkSize);
+    const resolvedChunk = await Promise.all(
+      chunk.map(async (m) => {
+        try {
+          const qr = await QRCode.toDataURL(m.id);
+          return { ...m, qr_code_url: qr };
+        } catch (err) {
+          return m;
+        }
+      })
+    );
+    fullList.push(...resolvedChunk);
+  }
 
   return fullList;
 };
 
+// In-Memory cache variables to eliminate repeated localStorage JSON parsing
+let memoryMaterials: Material[] | null = null;
+let memoryTransactions: Transaction[] | null = null;
+let memoryUsers: UserProfile[] | null = null;
+let memoryAllowedEmails: AllowedEmail[] | null = null;
+let isDbInitialized = false;
+
 const getLocalMaterials = (): Material[] => {
+  if (memoryMaterials) return memoryMaterials;
   const data = localStorage.getItem(STORAGE_KEYS.MATERIALS);
-  return data ? JSON.parse(data) : [];
+  memoryMaterials = data ? JSON.parse(data) : [];
+  return memoryMaterials!;
 };
 
 const saveLocalMaterials = (materials: Material[]) => {
+  memoryMaterials = materials;
   localStorage.setItem(STORAGE_KEYS.MATERIALS, JSON.stringify(materials));
 };
 
 const getLocalTransactions = (): Transaction[] => {
+  if (memoryTransactions) return memoryTransactions;
   const data = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
-  return data ? JSON.parse(data) : [];
+  memoryTransactions = data ? JSON.parse(data) : [];
+  return memoryTransactions!;
 };
 
 const saveLocalTransactions = (txs: Transaction[]) => {
+  memoryTransactions = txs;
   localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(txs));
 };
 
@@ -416,6 +434,7 @@ export const dbService = {
 
   // Initialize DB (seeds mock data if in mock mode)
   init: async () => {
+    if (isDbInitialized) return;
     if (dbService.isMockMode()) {
       await seedMockDataIfEmpty();
     } else {
@@ -442,6 +461,7 @@ export const dbService = {
         console.error('Failed to initialize Supabase DB, falling back to LocalStorage', err);
       }
     }
+    isDbInitialized = true;
   },
 
   // FETCH MATERIALS

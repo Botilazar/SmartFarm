@@ -232,6 +232,13 @@ const translations: Record<Language, Record<string, string>> = {
     setDbAccountsUnit: 'felhasználó',
     setDbFetching: 'Méretek lekérése...',
 
+    statAddedPast7Days: 'az elmúlt 7 napban',
+    statNoAddedPast7Days: 'Nincs új tétel az elmúlt 7 napban',
+    statCriticalRed: 'kritikus szintre csökkent (<40%)',
+    statStockOptimal: 'Minden készletszint optimális',
+    statComparedToYesterday: 'a tegnapi naphoz képest',
+    statUnchangedYesterday: 'Változatlan a tegnapi naphoz képest',
+
     // Allowed Emails View
     allowedTitle: 'Engedélyezett e\u2011mailek',
     allowedSubtitle: 'A raktári alkalmazásba regisztrálásra és belépésre jogosult e-mail címek (Raktárvezetői felület).',
@@ -550,6 +557,13 @@ const translations: Record<Language, Record<string, string>> = {
     setDbAccountsUnit: 'users',
     setDbFetching: 'Fetching sizes...',
 
+    statAddedPast7Days: 'in the last 7 days',
+    statNoAddedPast7Days: 'No new items in the last 7 days',
+    statCriticalRed: 'critical stock level (<40%)',
+    statStockOptimal: 'All stock levels optimal',
+    statComparedToYesterday: 'compared to yesterday',
+    statUnchangedYesterday: 'Unchanged compared to yesterday',
+
     // Allowed Emails View
     allowedTitle: 'Allowed Emails',
     allowedSubtitle: 'E-mail addresses authorized to register and sign in to the warehouse app (Manager panel).',
@@ -867,6 +881,13 @@ const translations: Record<Language, Record<string, string>> = {
     setDbAccounts: 'Konten',
     setDbAccountsUnit: 'Benutzer',
     setDbFetching: 'Größen werden abgerufen...',
+
+    statAddedPast7Days: 'in den letzten 7 Tagen',
+    statNoAddedPast7Days: 'Keine neuen Artikel in den letzten 7 Tagen',
+    statCriticalRed: 'kritischer Bestand (<40%)',
+    statStockOptimal: 'Alle Lagerbestände optimal',
+    statComparedToYesterday: 'im Vergleich zu gestern',
+    statUnchangedYesterday: 'Unverändert im Vergleich zu gestern',
 
     // Allowed Emails View
     allowedTitle: 'Genehmigte E-Mails',

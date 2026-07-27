@@ -351,10 +351,35 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
   const lowStockCount = yellowCount + redCount;
 
-  const transactionsToday = transactions.filter(tItem => {
-    const today = new Date().toDateString();
-    return new Date(tItem.timestamp).toDateString() === today;
-  }).length;
+  // Real calculation for Today & Yesterday transactions
+  const { transactionsTodayCount, transactionsYesterdayDiff } = React.useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfYesterday = startOfToday - (24 * 60 * 60 * 1000);
+
+    const todayTxs = transactions.filter(t => new Date(t.timestamp).getTime() >= startOfToday);
+    const yesterdayTxs = transactions.filter(t => {
+      const time = new Date(t.timestamp).getTime();
+      return time >= startOfYesterday && time < startOfToday;
+    });
+
+    const todayCount = todayTxs.length;
+    const diff = todayCount - yesterdayTxs.length;
+
+    return {
+      transactionsTodayCount: todayCount,
+      transactionsYesterdayDiff: diff
+    };
+  }, [transactions]);
+
+  // Real calculation for materials added in last 7 days
+  const materialsAddedPast7Days = React.useMemo(() => {
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    return materials.filter(m => {
+      if (!m.created_at) return false;
+      return new Date(m.created_at).getTime() >= sevenDaysAgo;
+    }).length;
+  }, [materials]);
 
   const categoryCounts = materials.reduce((acc, curr) => {
     acc[curr.category] = (acc[curr.category] || 0) + 1;
@@ -569,7 +594,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               <div className="mobile-stat-icon green"><Package size={16} /></div>
             </div>
             <div className="mobile-stat-card-value">{loading ? <span className="skeleton-loader skeleton-number" /> : totalMaterialsCount}</div>
-            <span className="mobile-stat-card-change" style={{ color: 'var(--success)' }}>+5 {t('comparedToLastWeek')}</span>
+            <span className="mobile-stat-card-change" style={{ color: materialsAddedPast7Days > 0 ? 'var(--success)' : 'var(--text-secondary)' }}>
+              {materialsAddedPast7Days > 0 ? `+${materialsAddedPast7Days} ${t('statAddedPast7Days')}` : t('statNoAddedPast7Days')}
+            </span>
           </div>
 
           <div className="mobile-stat-card">
@@ -578,7 +605,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               <div className="mobile-stat-icon red"><ShieldAlert size={16} /></div>
             </div>
             <div className="mobile-stat-card-value" style={{ color: 'var(--danger)' }}>{loading ? <span className="skeleton-loader skeleton-number" /> : lowStockCount}</div>
-            <span className="mobile-stat-card-change" style={{ color: 'var(--warning)' }}>+3 {t('comparedToLastWeek')}</span>
+            <span className="mobile-stat-card-change" style={{ color: redCount > 0 ? 'var(--danger)' : 'var(--success)' }}>
+              {redCount > 0 ? `${redCount} ${t('statCriticalRed')}` : t('statStockOptimal')}
+            </span>
           </div>
 
           <div className="mobile-stat-card">
@@ -586,8 +615,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               <span className="mobile-stat-title">{t('cardTodayMovements')}</span>
               <div className="mobile-stat-icon green"><ArrowLeftRight size={16} /></div>
             </div>
-            <div className="mobile-stat-card-value">{loading ? <span className="skeleton-loader skeleton-number" /> : transactionsToday}</div>
-            <span className="mobile-stat-card-change" style={{ color: 'var(--success)' }}>+8 {t('comparedToYesterday')}</span>
+            <div className="mobile-stat-card-value">{loading ? <span className="skeleton-loader skeleton-number" /> : transactionsTodayCount}</div>
+            <span className="mobile-stat-card-change" style={{ color: transactionsYesterdayDiff > 0 ? 'var(--success)' : transactionsYesterdayDiff < 0 ? 'var(--danger)' : 'var(--text-secondary)' }}>
+              {transactionsYesterdayDiff > 0
+                ? `+${transactionsYesterdayDiff} ${t('statComparedToYesterday')}`
+                : transactionsYesterdayDiff < 0
+                ? `${transactionsYesterdayDiff} ${t('statComparedToYesterday')}`
+                : t('statUnchangedYesterday')}
+            </span>
           </div>
         </div>
 
@@ -792,9 +827,11 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           <div className="stat-info">
             <h3>{t('cardTotalMaterials')}</h3>
             <div className="stat-value">{loading ? <span className="skeleton-loader skeleton-number" /> : totalMaterialsCount}</div>
-            <div className="stat-change up">
-              <ArrowUpRight size={14} />
-              <span>+5 {t('comparedToLastWeek')}</span>
+            <div className="stat-change" style={{ color: materialsAddedPast7Days > 0 ? 'var(--success)' : 'var(--text-secondary)' }}>
+              {materialsAddedPast7Days > 0 && <ArrowUpRight size={14} />}
+              <span>
+                {materialsAddedPast7Days > 0 ? `+${materialsAddedPast7Days} ${t('statAddedPast7Days')}` : t('statNoAddedPast7Days')}
+              </span>
             </div>
           </div>
           <div className="stat-icon-wrapper green">
@@ -806,9 +843,11 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           <div className="stat-info">
             <h3>{t('cardLowStock')}</h3>
             <div className="stat-value" style={{ color: 'var(--danger)' }}>{loading ? <span className="skeleton-loader skeleton-number" /> : lowStockCount}</div>
-            <div className="stat-change down" style={{ color: 'var(--warning)' }}>
-              <ArrowUpRight size={14} />
-              <span>+3 {t('comparedToLastWeek')}</span>
+            <div className="stat-change" style={{ color: redCount > 0 ? 'var(--danger)' : 'var(--success)' }}>
+              {redCount > 0 && <ShieldAlert size={14} />}
+              <span>
+                {redCount > 0 ? `${redCount} ${t('statCriticalRed')}` : t('statStockOptimal')}
+              </span>
             </div>
           </div>
           <div className="stat-icon-wrapper red">
@@ -819,10 +858,20 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         <div className="stat-card">
           <div className="stat-info">
             <h3>{t('cardTodayMovements')}</h3>
-            <div className="stat-value">{loading ? <span className="skeleton-loader skeleton-number" /> : transactionsToday}</div>
-            <div className="stat-change up">
-              <ArrowUpRight size={14} />
-              <span>+8 {t('comparedToYesterday')}</span>
+            <div className="stat-value">{loading ? <span className="skeleton-loader skeleton-number" /> : transactionsTodayCount}</div>
+            <div className="stat-change" style={{ color: transactionsYesterdayDiff > 0 ? 'var(--success)' : transactionsYesterdayDiff < 0 ? 'var(--danger)' : 'var(--text-secondary)' }}>
+              {transactionsYesterdayDiff > 0 ? (
+                <ArrowUpRight size={14} />
+              ) : transactionsYesterdayDiff < 0 ? (
+                <ArrowDownRight size={14} />
+              ) : null}
+              <span>
+                {transactionsYesterdayDiff > 0
+                  ? `+${transactionsYesterdayDiff} ${t('statComparedToYesterday')}`
+                  : transactionsYesterdayDiff < 0
+                  ? `${transactionsYesterdayDiff} ${t('statComparedToYesterday')}`
+                  : t('statUnchangedYesterday')}
+              </span>
             </div>
           </div>
           <div className="stat-icon-wrapper green">
