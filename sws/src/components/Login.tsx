@@ -44,6 +44,92 @@ export const Login: React.FC<LoginProps> = ({
     setAuthView(initialView);
   }, [initialView]);
 
+  const formatAuthError = (rawMsg: string): string => {
+    if (!rawMsg) return t('authErrorGeneral');
+
+    const msg = rawMsg.toLowerCase();
+
+    // Whitelist / Authorization error
+    if (msg.includes('nincs engedélyezve') || msg.includes('not authorized') || msg.includes('not allowed')) {
+      return t('authErrorNotAllowed');
+    }
+
+    // Invalid credentials
+    if (
+      msg.includes('invalid login credentials') ||
+      msg.includes('invalid credentials') ||
+      msg.includes('hibás e-mail cím') ||
+      msg.includes('invalid email or password')
+    ) {
+      return t('authErrorInvalidCredentials');
+    }
+
+    // Email not confirmed
+    if (msg.includes('email not confirmed') || msg.includes('not verified')) {
+      return t('authErrorEmailNotConfirmed');
+    }
+
+    // User already exists
+    if (
+      msg.includes('already registered') ||
+      msg.includes('already exists') ||
+      msg.includes('már regisztráltak')
+    ) {
+      return t('authErrorUserExists');
+    }
+
+    // Password weak
+    if (
+      msg.includes('at least 6 characters') ||
+      msg.includes('too weak') ||
+      msg.includes('legalább 6 karakter')
+    ) {
+      return t('authErrorPwdWeak');
+    }
+
+    // Rate limit
+    if (msg.includes('rate limit') || msg.includes('too many requests') || msg.includes('túl sok próbálkozás')) {
+      return t('authErrorRateLimit');
+    }
+
+    // Invalid token / expired link
+    if (
+      msg.includes('invalid link') ||
+      msg.includes('token expired') ||
+      msg.includes('expired') ||
+      msg.includes('érvénytelen')
+    ) {
+      return t('authErrorInvalidToken');
+    }
+
+    // Email required
+    if (msg.includes('add meg az e-mail') || msg.includes('email is required')) {
+      return t('authErrorEmailRequired');
+    }
+
+    // Password required
+    if (msg.includes('add meg a jelszavad') || msg.includes('password is required')) {
+      return t('authErrorPwdRequired');
+    }
+
+    // Name required
+    if (msg.includes('teljes neved') || msg.includes('name is required')) {
+      return t('authErrorNameRequired');
+    }
+
+    // Not registered
+    if (msg.includes('nincs regisztrálva') || msg.includes('not registered') || msg.includes('user not found')) {
+      return t('authErrorNotRegistered');
+    }
+
+    // Passwords mismatch
+    if (msg.includes('nem egyezik') || msg.includes('do not match')) {
+      return t('authErrorPwdMismatch');
+    }
+
+    return rawMsg;
+  };
+
   const handleRememberMeChange = (checked: boolean) => {
     setRememberMe(checked);
     localStorage.setItem('smartfarm_remember_me', checked ? 'true' : 'false');
@@ -80,7 +166,7 @@ export const Login: React.FC<LoginProps> = ({
         loginEmail = 'kezelo.janos@ceg.hu';
         loginPassword = loginPassword || 'password123';
       } else {
-        setError('Kérjük, add meg az e-mail címedet!');
+        setError(t('authErrorEmailRequired'));
         setLoading(false);
         return;
       }
@@ -90,7 +176,7 @@ export const Login: React.FC<LoginProps> = ({
       if (!isSupabaseConfigured) {
         loginPassword = 'password123';
       } else {
-        setError('Kérjük, add meg a jelszavadat!');
+        setError(t('authErrorPwdRequired'));
         setLoading(false);
         return;
       }
@@ -101,7 +187,7 @@ export const Login: React.FC<LoginProps> = ({
       const isAllowed = await dbService.isEmailAllowed(loginEmail);
 
       if (!isAllowed) {
-        throw new Error('Ez az e-mail cím nincs engedélyezve a SmartFarm rendszerben! Kérjük, vedd fel a kapcsolatot a raktárvezetővel az engedélyezésért.');
+        throw new Error(t('authErrorNotAllowed'));
       }
 
       if (isSupabaseConfigured) {
@@ -111,11 +197,7 @@ export const Login: React.FC<LoginProps> = ({
         });
 
         if (authError) {
-          throw new Error(
-            authError.message === 'Invalid login credentials'
-              ? 'Hibás e-mail cím vagy jelszó.'
-              : authError.message
-          );
+          throw new Error(authError.message);
         }
 
         // The auth state subscription in App.tsx will set the current user automatically.
@@ -139,14 +221,12 @@ export const Login: React.FC<LoginProps> = ({
           } else if (loginEmail === 'kezelo.janos@ceg.hu' && loginPassword === 'password123') {
             onLogin({ id: 'operator-mock-id', name: 'Kezelő János', email: loginEmail, role: 'operator' });
           } else {
-            throw new Error(
-              'Hibás e-mail cím vagy jelszó. Offline módban használd a teszt fiókokat vagy regisztrálj újat!'
-            );
+            throw new Error(t('authErrorInvalidCredentials'));
           }
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Hiba történt a bejelentkezés során.');
+      setError(formatAuthError(err.message));
     } finally {
       setLoading(false);
     }
@@ -159,7 +239,7 @@ export const Login: React.FC<LoginProps> = ({
     setLoading(true);
 
     if (!fullName.trim()) {
-      setError('Kérjük, add meg a teljes nevedet!');
+      setError(t('authErrorNameRequired'));
       setLoading(false);
       return;
     }
@@ -168,7 +248,7 @@ export const Login: React.FC<LoginProps> = ({
       const isAllowed = await dbService.isEmailAllowed(email);
 
       if (!isAllowed) {
-        setError('Ez az e-mail cím nincs engedélyezve! A regisztrációhoz a raktárvezetőnek előre fel kell vennie az e-mail címedet az engedélyezett listára.');
+        setError(t('authErrorNotAllowed'));
         setLoading(false);
         return;
       }
@@ -211,9 +291,7 @@ export const Login: React.FC<LoginProps> = ({
               role: role,
             });
           } else {
-            setSuccessMessage(
-              'Sikeres regisztráció! Kérjük, ellenőrizd az e-mail fiókodat a megerősítő linkért.'
-            );
+            setSuccessMessage(t('authSuccessRegister'));
             setAuthView('login');
             setFullName('');
             setPassword('');
@@ -225,7 +303,7 @@ export const Login: React.FC<LoginProps> = ({
         const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
 
         if (savedUsers.some((u: any) => u.email === email)) {
-          throw new Error('Ezzel az e-mail címmel már regisztráltak!');
+          throw new Error(t('authErrorUserExists'));
         }
 
         const newUser = {
@@ -239,13 +317,13 @@ export const Login: React.FC<LoginProps> = ({
         savedUsers.push(newUser);
         localStorage.setItem('smartfarm_users', JSON.stringify(savedUsers));
 
-        setSuccessMessage('Sikeres regisztráció offline módban! Most már bejelentkezhetsz.');
+        setSuccessMessage(t('authSuccessRegisterDemo'));
         setAuthView('login');
         setFullName('');
         setPassword('');
       }
     } catch (err: any) {
-      setError(err.message || 'Hiba történt a regisztráció során.');
+      setError(formatAuthError(err.message));
     } finally {
       setLoading(false);
     }
@@ -258,7 +336,7 @@ export const Login: React.FC<LoginProps> = ({
     setLoading(true);
 
     if (!email) {
-      setError('Kérjük, add meg az e-mail címedet!');
+      setError(t('authErrorEmailRequired'));
       setLoading(false);
       return;
     }
@@ -273,9 +351,7 @@ export const Login: React.FC<LoginProps> = ({
           throw new Error(resetError.message);
         }
 
-        setSuccessMessage(
-          'A jelszó-visszaállítási linket elküldtük az e-mail címedre! Kérjük, ellenőrizd a bejövő leveleidet.'
-        );
+        setSuccessMessage(t('authSuccessForgotSent'));
       } else {
         // Offline / Mock Mode Forgot Password
         const savedUsersJson = localStorage.getItem('smartfarm_users');
@@ -287,22 +363,18 @@ export const Login: React.FC<LoginProps> = ({
         const userExists = savedUsers.some((u: any) => u.email === email) || isDefaultAdmin || isDefaultOperator;
 
         if (!userExists) {
-          throw new Error(
-            'Ez az e-mail cím nincs regisztrálva a rendszerben!'
-          );
+          throw new Error(t('authErrorNotRegistered'));
         }
 
         // Simulating the email redirect by transitioning directly to the reset-password view
         setResetEmailTarget(email);
-        setSuccessMessage(
-          'Offline mód: Az e-mail küldést szimuláltuk. Azonosítás sikeres! Most megadhatod az új jelszót.'
-        );
+        setSuccessMessage(t('authSuccessForgotDemo'));
         setPassword('');
         setConfirmPassword('');
         setAuthView('reset-password');
       }
     } catch (err: any) {
-      setError(err.message || 'Hiba történt a jelszó-visszaállítás kezdeményezése során.');
+      setError(formatAuthError(err.message));
     } finally {
       setLoading(false);
     }
@@ -315,13 +387,13 @@ export const Login: React.FC<LoginProps> = ({
     setLoading(true);
 
     if (!password) {
-      setError('Kérjük, add meg az új jelszót!');
+      setError(t('authErrorNewPwdRequired'));
       setLoading(false);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('A két jelszó nem egyezik meg!');
+      setError(t('authErrorPwdMismatch'));
       setLoading(false);
       return;
     }
@@ -336,9 +408,7 @@ export const Login: React.FC<LoginProps> = ({
           throw new Error(resetError.message);
         }
 
-        setSuccessMessage(
-          'A jelszavad sikeresen megváltozott! Jelentkezz be újra az új jelszóval.'
-        );
+        setSuccessMessage(t('authSuccessResetDone'));
 
         if (onPasswordResetComplete) {
           setTimeout(() => {
@@ -354,7 +424,7 @@ export const Login: React.FC<LoginProps> = ({
         // Offline / Mock Mode Reset Password
         const targetEmail = resetEmailTarget || email;
         if (!targetEmail) {
-          throw new Error('Hiba történt: nincs megadva azonosított e-mail cím.');
+          throw new Error(t('authErrorGeneral'));
         }
 
         const savedUsersJson = localStorage.getItem('smartfarm_users');
@@ -377,9 +447,7 @@ export const Login: React.FC<LoginProps> = ({
           localStorage.setItem('smartfarm_users', JSON.stringify(savedUsers));
         }
 
-        setSuccessMessage(
-          'Offline mód: A jelszó sikeresen megváltozott! Most már bejelentkezhetsz az új jelszóval.'
-        );
+        setSuccessMessage(t('authSuccessResetDemo'));
 
         setPassword('');
         setConfirmPassword('');
@@ -391,7 +459,7 @@ export const Login: React.FC<LoginProps> = ({
         }, 2500);
       }
     } catch (err: any) {
-      setError(err.message || 'Hiba történt a jelszó módosítása során.');
+      setError(formatAuthError(err.message));
     } finally {
       setLoading(false);
     }

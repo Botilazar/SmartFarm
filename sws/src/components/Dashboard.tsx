@@ -655,7 +655,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
 
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)' }}>
-                            {m.stock} {m.unit}
+                            {m.quantity} {m.unit}
                           </span>
                         </div>
                       </div>
@@ -858,6 +858,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               onClick={() => {
                 setActiveView('dashboard');
                 setProfileSubView('none');
+                setMobileTab('home');
               }}
               style={{ cursor: 'pointer' }}
             >

@@ -36,11 +36,23 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     let newQty = material.quantity;
     if (transactionType === 'checkout') {
       if (qty > material.quantity) {
-        setTransactionError(`Nincs elég készlet! Jelenleg elérhető: ${material.quantity} ${material.unit}`);
+        const notEnoughMsg = (t('txErrorNotEnoughStock') || 'Nincs elég készlet! Jelenleg elérhető: {current} {unit}')
+          .replace('{current}', String(material.quantity))
+          .replace('{unit}', material.unit);
+        setTransactionError(notEnoughMsg);
         return;
       }
       newQty -= qty;
     } else {
+      const totalQtyAfterIntake = material.quantity + qty;
+      if (totalQtyAfterIntake > material.max_quantity) {
+        const maxCapacityMsg = (t('txErrorMaxCapacity') || 'A felvenni kívánt mennyiséggel ({total} {unit}) a készlet meghaladná a maximális kapacitást ({max} {unit})! Növeld a maximum kapacitást az anyag szerkesztésénél.')
+          .replace('{total}', String(totalQtyAfterIntake))
+          .replace('{max}', String(material.max_quantity))
+          .replaceAll('{unit}', material.unit);
+        setTransactionError(maxCapacityMsg);
+        return;
+      }
       newQty += qty;
     }
 
