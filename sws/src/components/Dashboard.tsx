@@ -72,6 +72,53 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   // Selected material for viewing QR
   const [viewingQrMaterial, setViewingQrMaterial] = useState<Material | null>(null);
 
+  // Global search dropdown state
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
+
+  // Compute live search results (min 3 chars)
+  const headerSearchResults = React.useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q.length < 3) return [];
+    return materials.filter(m =>
+      m.name.toLowerCase().includes(q) ||
+      m.id.toLowerCase().includes(q) ||
+      m.category.toLowerCase().includes(q) ||
+      (m.location && m.location.toLowerCase().includes(q))
+    );
+  }, [materials, searchQuery]);
+
+  // Click outside listener to close search dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        desktopSearchRef.current && !desktopSearchRef.current.contains(event.target as Node) &&
+        mobileSearchRef.current && !mobileSearchRef.current.contains(event.target as Node)
+      ) {
+        setShowSearchDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectSearchResult = (material: Material) => {
+    setShowSearchDropdown(false);
+    setSearchQuery(material.name);
+    setActiveView('materials');
+    setMobileTab('materials');
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      setShowSearchDropdown(false);
+      setActiveView('materials');
+      setMobileTab('materials');
+    }
+  };
+
   // Track system status
   const isMock = dbService.isMockMode();
 
@@ -515,15 +562,107 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         <div className="main-layout">
           {/* Topbar Header */}
           <header className="desktop-header">
-            <div className="search-bar-wrapper">
+            <div className="search-bar-wrapper" ref={desktopSearchRef} style={{ position: 'relative' }}>
               <Search className="input-icon" size={18} />
               <input
                 type="text"
                 className="search-input"
                 placeholder={t('searchPlaceholder')}
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => {
+                  if (searchQuery.trim().length >= 3) setShowSearchDropdown(true);
+                }}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSearchQuery(val);
+                  if (val.trim().length >= 3) {
+                    setShowSearchDropdown(true);
+                  } else {
+                    setShowSearchDropdown(false);
+                  }
+                }}
+                onKeyDown={handleSearchKeyDown}
               />
+
+              {/* Instant Search Results Dropdown */}
+              {showSearchDropdown && searchQuery.trim().length >= 3 && (
+                <div
+                  className="search-dropdown-menu"
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'var(--bg-card)',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border)',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.25)',
+                    zIndex: 1000,
+                    maxHeight: '360px',
+                    overflowY: 'auto',
+                    padding: '8px'
+                  }}
+                >
+                  <div style={{ padding: '6px 10px 8px 10px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid var(--border)', marginBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{t('searchResultsTitle') || 'Keresési találatok'} ({headerSearchResults.length})</span>
+                    <span style={{ fontSize: '10px', textTransform: 'none', fontWeight: 400, opacity: 0.8 }}>{t('pressEnterToView') || 'Nyomj ENTER-t a megtekintéshez'}</span>
+                  </div>
+
+                  {headerSearchResults.length === 0 ? (
+                    <div style={{ padding: '16px 12px', textAlign: 'center', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      {t('noSearchResults') || 'Nincs a keresési feltételnek megfelelő anyag.'}
+                    </div>
+                  ) : (
+                    headerSearchResults.map((m) => (
+                      <div
+                        key={m.id}
+                        onClick={() => handleSelectSearchResult(m)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.15s ease',
+                        }}
+                        className="search-result-item"
+                      >
+                        <div style={{ width: '36px', height: '36px', borderRadius: '6px', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                          {m.image_url ? (
+                            <img src={m.image_url} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <Package size={18} style={{ color: 'var(--primary)' }} />
+                          )}
+                        </div>
+
+                        <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {m.name}
+                            </span>
+                            <span style={{ fontFamily: 'monospace', fontSize: '11px', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', backgroundColor: 'var(--bg-app)', color: 'var(--text-secondary)', border: '1px solid var(--border)', flexShrink: 0 }}>
+                              {m.id}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                            <span>{m.category}</span>
+                            {m.location && (
+                              <span>• {m.location}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)' }}>
+                            {m.stock} {m.unit}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="header-actions">
@@ -812,17 +951,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
           </div>
 
           <div className="mobile-search-row">
-            <div className="mobile-search-wrapper">
+            <div className="mobile-search-wrapper" ref={mobileSearchRef} style={{ position: 'relative' }}>
               <Search className="input-icon" size={16} style={{ left: '12px', color: 'rgba(255,255,255,0.7)' }} />
               <input
                 type="text"
                 className="mobile-search-input"
-                placeholder="Keresés anyag, azonosító vagy hely..."
+                placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setMobileTab('materials');
+                  const val = e.target.value;
+                  setSearchQuery(val);
+                  if (val.trim().length >= 3) {
+                    setMobileTab('materials');
+                    setActiveView('materials');
+                  }
                 }}
+                onKeyDown={handleSearchKeyDown}
               />
             </div>
           </div>
