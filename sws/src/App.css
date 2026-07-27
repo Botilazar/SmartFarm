@@ -206,6 +206,11 @@ input:focus, select:focus, textarea:focus {
   height: 16px;
   border-radius: 4px;
   cursor: pointer;
+  accent-color: var(--primary);
+}
+
+input[type="checkbox"] {
+  accent-color: var(--primary);
 }
 
 .forgot-password-link {
@@ -322,6 +327,8 @@ input:focus, select:focus, textarea:focus {
   align-items: center;
   gap: 10px;
   border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
 }
 
 .sidebar-nav {

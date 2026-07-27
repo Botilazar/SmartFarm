@@ -16,7 +16,7 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
   const [emails, setEmails] = useState<AllowedEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Modal state for adding a new allowed email
   const [showAddModal, setShowAddModal] = useState(false);
   const [addEmail, setAddEmail] = useState('');
@@ -49,10 +49,12 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
 
     if (window.confirm(`Biztosan vissza szeretnéd vonni a(z) ${item.email} regisztrációs engedélyét?`)) {
       try {
+        // Instant optimistic UI update
+        setEmails(prev => prev.filter(e => e.id !== item.id));
         await dbService.deleteAllowedEmail(item.id);
-        await loadEmails();
         if (onEmailsUpdated) onEmailsUpdated();
       } catch (err) {
+        await loadEmails();
         console.error('Failed to delete allowed email:', err);
       }
     }
@@ -67,18 +69,26 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
       return;
     }
 
-    setAddLoading(true);
+    const tempId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11);
+    const newEmailObj: AllowedEmail = {
+      id: tempId,
+      email: addEmail.trim().toLowerCase(),
+      name: addName.trim() || undefined,
+      created_at: new Date().toISOString()
+    };
+
+    // Instant optimistic UI update
+    setEmails(prev => [newEmailObj, ...prev]);
+    setAddEmail('');
+    setAddName('');
+    setShowAddModal(false);
+
     try {
       await dbService.addAllowedEmail(addEmail.trim(), addName.trim() || undefined);
-      setAddEmail('');
-      setAddName('');
-      setShowAddModal(false);
-      await loadEmails();
       if (onEmailsUpdated) onEmailsUpdated();
     } catch (err: any) {
       setAddError(err.message || 'Hiba történt az e-mail engedélyezése során.');
-    } finally {
-      setAddLoading(false);
+      await loadEmails();
     }
   };
 
@@ -170,7 +180,7 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
         {/* Search Bar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '14px' }}>
           <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
-            Összesen <strong>{filteredEmails.length}</strong> engedélyezett e-mail cím
+            Összesen <strong>{filteredEmails.length}</strong> engedélyezett e-mail cím.
           </div>
 
           <div className="search-bar-wrapper" style={{ maxWidth: '280px', margin: 0 }}>

@@ -297,6 +297,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     try {
       const created = await dbService.addMaterial(newMatData);
 
+      // Instant optimistic UI update
+      setMaterials(prev => [created, ...prev]);
+      setShowNewMaterialModal(false);
+
       // Also log transaction for intake
       if (created.quantity > 0) {
         await dbService.addTransaction({
@@ -307,12 +311,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
           user_name: user.name,
           notes: 'Kezdő raktárkészlet feltöltése'
         });
+        const txs = await dbService.getTransactions();
+        setTransactions(txs);
       }
-
-      setShowNewMaterialModal(false);
-      await loadData();
     } catch (err: any) {
       alert(err.message || 'Mentés sikertelen.');
+      await loadData();
     }
   };
 
@@ -320,6 +324,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   const handleEditMaterial = async (updatedData: Omit<Material, 'qr_code_url'>) => {
     if (!editingMaterial) return;
     try {
+      const updatedMat: Material = {
+        ...editingMaterial,
+        name: updatedData.name.trim(),
+        quantity: Number(updatedData.quantity),
+        max_quantity: Number(updatedData.max_quantity),
+        unit: updatedData.unit,
+        category: updatedData.category,
+        location: updatedData.location.toUpperCase(),
+        image_url: updatedData.image_url,
+        expiration_date: updatedData.expiration_date,
+      };
+
+      // Instant optimistic UI update
+      setMaterials(prev => prev.map(m => m.id === editingMaterial.id ? updatedMat : m));
+      setEditingMaterial(null);
+
       await dbService.updateMaterial(editingMaterial.id, {
         name: updatedData.name.trim(),
         quantity: Number(updatedData.quantity),
@@ -342,12 +362,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
           user_name: user.name,
           notes: 'Készlet közvetlen korrekciója szerkesztéssel'
         });
+        const txs = await dbService.getTransactions();
+        setTransactions(txs);
       }
-
-      setEditingMaterial(null);
-      await loadData();
     } catch (err: any) {
       alert(err.message || 'Módosítás sikertelen.');
+      await loadData();
     }
   };
 
@@ -367,17 +387,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     setDeleteConfirmMaterial(material);
   };
 
-  // Handle User Role Update
+  // Handle User Role Update (Instant Optimistic Update)
   const handleUpdateUserRole = async (userId: string, newRole: 'admin' | 'operator') => {
     const targetUser = users.find(u => u.id === userId);
     if (targetUser && targetUser.email.toLowerCase() === user.email.toLowerCase()) {
       alert('Saját jogosultságodat biztonsági okokból nem módosíthatod!');
       return;
     }
+    // Instant UI reaction (0ms)
+    setUsers(prevUsers =>
+      prevUsers.map(u => (u.id === userId ? { ...u, role: newRole } : u))
+    );
     try {
       await dbService.updateUserProfileRole(userId, newRole);
-      await loadData();
     } catch (err: any) {
+      await loadData();
       alert(err.message || 'Hiba történt a jogosultság módosítása során.');
     }
   };
@@ -402,7 +426,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
       <div className="app-container">
         {/* Sidebar */}
         <aside className="desktop-sidebar">
-          <div className="sidebar-header">
+          <div
+            className="sidebar-header"
+            onClick={() => {
+              setActiveView('dashboard');
+              setProfileSubView('none');
+            }}
+            style={{ cursor: 'pointer' }}
+          >
             <Sprout className="sidebar-header-logo" size={32} />
             <h1 className="brand-name" style={{ margin: 0, fontSize: '20px' }}>SmartFarm</h1>
           </div>
@@ -499,16 +530,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               <button
                 type="button"
                 className="btn-secondary"
-                style={{ 
-                  width: 'auto', 
-                  minWidth: '130px', 
-                  height: '38px', 
-                  padding: '0 16px', 
-                  fontSize: '13px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  gap: '6px', 
+                style={{
+                  width: 'auto',
+                  minWidth: '130px',
+                  height: '38px',
+                  padding: '0 16px',
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
                   flexShrink: 0,
                   whiteSpace: 'nowrap'
                 }}
@@ -587,7 +618,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 )}
               </div>
 
-              <div className="profile-display">
+              <div
+                className="profile-display"
+                onClick={() => {
+                  setActiveView('settings');
+                  setProfileSubView('none');
+                }}
+                style={{ cursor: 'pointer' }}
+              >
                 <img
                   src={user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=006837&color=fff`}
                   alt={user.name}
@@ -676,7 +714,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         {/* Mobile top header */}
         <header className="mobile-header">
           <div className="mobile-header-top">
-            <div className="mobile-brand-title">
+            <div
+              className="mobile-brand-title"
+              onClick={() => {
+                setActiveView('dashboard');
+                setProfileSubView('none');
+              }}
+              style={{ cursor: 'pointer' }}
+            >
               <Sprout size={24} />
               <span>SmartFarm</span>
             </div>
@@ -757,7 +802,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=fff&color=006837`}
                 alt={user.name}
                 className="mobile-avatar-img"
-                onClick={onLogout}
+                onClick={() => {
+                  setMobileTab('profile');
+                  setProfileSubView('none');
+                }}
+                style={{ cursor: 'pointer' }}
               />
             </div>
           </div>
@@ -887,7 +936,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <ShieldCheck size={18} style={{ color: 'var(--primary)' }} />
-                            <span>Engedélyezett e-mailek</span>
+                            <span>Engedélyezett e\u2011mailek</span>
                           </div>
                           <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
                         </button>

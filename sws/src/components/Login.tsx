@@ -16,15 +16,21 @@ export const Login: React.FC<LoginProps> = ({
   onPasswordResetComplete
 }) => {
   // const { t, language } = useTranslation();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(() => {
+    return localStorage.getItem('smartfarm_remember_me') !== 'false';
+  });
+  const [email, setEmail] = useState(() => {
+    const isRemembered = localStorage.getItem('smartfarm_remember_me') !== 'false';
+    return isRemembered ? (localStorage.getItem('smartfarm_remembered_email') || '') : '';
+  });
+  const [password, setPassword] = useState(() => {
+    const isRemembered = localStorage.getItem('smartfarm_remember_me') !== 'false';
+    return isRemembered ? (localStorage.getItem('smartfarm_remembered_password') || '') : '';
+  });
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const role: 'admin' | 'operator' = 'operator';
-  const [rememberMe, setRememberMe] = useState(() => {
-    return localStorage.getItem('smartfarm_remember_me') !== 'false';
-  });
 
   // New state variables for registration and state management
   const [authView, setAuthView] = useState<'login' | 'register' | 'forgot' | 'reset-password'>(initialView);
@@ -38,17 +44,36 @@ export const Login: React.FC<LoginProps> = ({
     setAuthView(initialView);
   }, [initialView]);
 
+  const handleRememberMeChange = (checked: boolean) => {
+    setRememberMe(checked);
+    localStorage.setItem('smartfarm_remember_me', checked ? 'true' : 'false');
+    if (!checked) {
+      localStorage.removeItem('smartfarm_remembered_email');
+      localStorage.removeItem('smartfarm_remembered_password');
+    } else {
+      if (email) localStorage.setItem('smartfarm_remembered_email', email);
+      if (password) localStorage.setItem('smartfarm_remembered_password', password);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccessMessage(null);
     setLoading(true);
 
-    // Save rememberMe preference
-    localStorage.setItem('smartfarm_remember_me', rememberMe ? 'true' : 'false');
-
     let loginEmail = email.trim();
     let loginPassword = password;
+
+    // Save rememberMe preference & credentials
+    localStorage.setItem('smartfarm_remember_me', rememberMe ? 'true' : 'false');
+    if (rememberMe) {
+      if (loginEmail) localStorage.setItem('smartfarm_remembered_email', loginEmail);
+      if (loginPassword) localStorage.setItem('smartfarm_remembered_password', loginPassword);
+    } else {
+      localStorage.removeItem('smartfarm_remembered_email');
+      localStorage.removeItem('smartfarm_remembered_password');
+    }
 
     if (!loginEmail) {
       if (!isSupabaseConfigured) {
@@ -477,7 +502,7 @@ export const Login: React.FC<LoginProps> = ({
                   type="checkbox"
                   className="checkbox-input"
                   checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
+                  onChange={(e) => handleRememberMeChange(e.target.checked)}
                 />
                 Emlékezz rám
               </label>

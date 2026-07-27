@@ -19,6 +19,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
     transactions_size_bytes: number;
     materials_size_bytes: number;
     profiles_size_bytes: number;
+    materials_count?: number;
+    transactions_count?: number;
+    profiles_count?: number;
   } | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -28,11 +31,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
     const transactionsStr = localStorage.getItem('smartfarm_transactions') || '[]';
     const usersStr = localStorage.getItem('smartfarm_users') || '[]';
     const profilesStr = localStorage.getItem('smartfarm_profiles') || '[]';
-    
+
+    const materials = JSON.parse(materialsStr);
+    const transactions = JSON.parse(transactionsStr);
+    const users = JSON.parse(usersStr);
+
     const materialsBytes = new Blob([materialsStr]).size;
     const transactionsBytes = new Blob([transactionsStr]).size;
     const profilesBytes = new Blob([profilesStr]).size + new Blob([usersStr]).size;
-    
+
     let totalBytes = 0;
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -40,12 +47,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
         totalBytes += new Blob([localStorage.getItem(key) || '']).size;
       }
     }
-    
+
     setDbStats({
       db_size_bytes: totalBytes,
       transactions_size_bytes: transactionsBytes,
       materials_size_bytes: materialsBytes,
-      profiles_size_bytes: profilesBytes
+      profiles_size_bytes: profilesBytes,
+      materials_count: Array.isArray(materials) ? materials.length : 0,
+      transactions_count: Array.isArray(transactions) ? transactions.length : 0,
+      profiles_count: Array.isArray(users) ? users.length : 0
     });
   };
 
@@ -54,11 +64,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
       const { count: transCount } = await supabase!
         .from('transactions')
         .select('*', { count: 'exact', head: true });
-        
-      const { data: materialsData } = await supabase!
+
+      const { data: materialsData, count: matsCount } = await supabase!
         .from('materials')
-        .select('name, location, image_url');
-        
+        .select('name, location, image_url', { count: 'exact' });
+
       const { count: profsCount } = await supabase!
         .from('profiles')
         .select('*', { count: 'exact', head: true });
@@ -69,13 +79,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
 
       const transBytes = (transCount || 0) * 350;
       const profilesBytes = (profsCount || 0) * 250;
-      const totalEstimatedBytes = transBytes + materialsBytes + profilesBytes + 1024 * 1024; // 1MB base pg footprint
+      const totalEstimatedBytes = transBytes + materialsBytes + profilesBytes + 1024 * 1024;
 
       setDbStats({
         db_size_bytes: totalEstimatedBytes,
         transactions_size_bytes: transBytes,
         materials_size_bytes: materialsBytes,
-        profiles_size_bytes: profilesBytes
+        profiles_size_bytes: profilesBytes,
+        materials_count: matsCount || 0,
+        transactions_count: transCount || 0,
+        profiles_count: profsCount || 0
       });
     } catch (err: any) {
       throw new Error("Sikertelen méretbecslés: " + err.message);
@@ -89,11 +102,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
     try {
       if (!isMock && isSupabaseConfigured) {
         const { data, error } = await supabase!.rpc('get_database_stats');
+
+        // Also fetch live counts
+        const { count: transCount } = await supabase!
+          .from('transactions')
+          .select('*', { count: 'exact', head: true });
+        const { count: matsCount } = await supabase!
+          .from('materials')
+          .select('*', { count: 'exact', head: true });
+        const { count: profsCount } = await supabase!
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+
         if (error) {
           console.warn("RPC get_database_stats failed, falling back to estimation:", error);
           await fetchStatsFallback();
         } else {
-          setDbStats(data);
+          setDbStats({
+            ...data,
+            materials_count: matsCount || 0,
+            transactions_count: transCount || 0,
+            profiles_count: profsCount || 0
+          });
         }
       } else {
         calculateLocalStorageStats();
@@ -317,9 +347,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
         setStatusMessage({ type: 'success', text: `Jelszó-visszaállító e-mail sikeresen elküldve a következő címre: ${user.email}` });
       } else {
         await new Promise(resolve => setTimeout(resolve, 800));
-        setStatusMessage({ 
-          type: 'success', 
-          text: `[Demó Mód] Jelszó-visszaállító e-mail kiküldése szimulálva a következő címre: ${user.email}` 
+        setStatusMessage({
+          type: 'success',
+          text: `[Demó Mód] Jelszó-visszaállító e-mail kiküldése szimulálva a következő címre: ${user.email}`
         });
       }
     } catch (err: any) {
@@ -338,13 +368,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
       </h2>
 
       {statusMessage && (
-        <div 
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '10px', 
-            padding: '12px 16px', 
-            borderRadius: '8px', 
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '12px 16px',
+            borderRadius: '8px',
             marginBottom: '20px',
             fontSize: '14px',
             fontWeight: 500,
@@ -377,7 +407,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
             />
 
             {/* Left overlay: Green Camera Button */}
-            <label 
+            <label
               htmlFor="avatar-upload"
               style={{
                 position: 'absolute',
@@ -400,7 +430,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
               title="Új kép feltöltése"
             >
               <Camera size={16} />
-              <input 
+              <input
                 id="avatar-upload"
                 type="file"
                 accept="image/*"
@@ -619,15 +649,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
         {user.role === 'admin' && (
           <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border)', textAlign: 'left' }}>
             <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span>Adatbázis Rendszergazda Info</span>
-              <button 
-                type="button" 
-                onClick={fetchDbStats} 
-                disabled={statsLoading} 
+              <span>{t('setDbAdminInfo')}</span>
+              <button
+                type="button"
+                onClick={fetchDbStats}
+                disabled={statsLoading}
                 style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600 }}
               >
                 <RefreshCw size={14} className={statsLoading ? "spin-animation" : ""} style={{ animation: statsLoading ? 'spin 1s linear infinite' : 'none' }} />
-                Frissítés
+                {t('setDbRefresh')}
               </button>
             </h3>
 
@@ -641,49 +671,66 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
                 {/* Progress bar */}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 500 }}>
-                    <span>Összes felhasznált tárhely:</span>
+                    <span>{t('setDbStorageUsed')}</span>
                     <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
                       {(dbStats.db_size_bytes / (1024 * 1024)).toFixed(2)} MB / {isMock ? '5' : '500'} MB
                     </span>
                   </div>
                   <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--bg-app)', borderRadius: '4px', overflow: 'hidden' }}>
-                    <div 
-                      style={{ 
-                        height: '100%', 
+                    <div
+                      style={{
+                        height: '100%',
                         backgroundColor: (dbStats.db_size_bytes / (1024 * 1024)) > (isMock ? 4 : 400) ? 'var(--danger)' : 'var(--primary)',
                         width: `${Math.min(100, (dbStats.db_size_bytes / (1024 * 1024)) / (isMock ? 5 : 500) * 100)}%`,
                         transition: 'width 0.4s ease'
-                      }} 
+                      }}
                     />
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px', marginTop: '4px' }}>
-                  <div style={{ padding: '10px', backgroundColor: 'var(--bg-app)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Készletmozgások (Logok)</span>
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', fontSize: '13px', marginTop: '4px' }}>
+                  <div style={{ padding: '12px', backgroundColor: 'var(--bg-app)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>{t('setDbMovements')}</span>
+                    <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginTop: '2px' }}>
+                      {dbStats.transactions_count !== undefined ? `${dbStats.transactions_count} ${t('setDbMovementsUnit')}` : ''}
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                       {(dbStats.transactions_size_bytes / (1024 * 1024)).toFixed(3)} MB
                     </span>
                   </div>
-                  <div style={{ padding: '10px', backgroundColor: 'var(--bg-app)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Anyagok (Termékek)</span>
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+
+                  <div style={{ padding: '12px', backgroundColor: 'var(--bg-app)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>{t('setDbMaterials')}</span>
+                    <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginTop: '2px' }}>
+                      {dbStats.materials_count !== undefined ? `${dbStats.materials_count} ${t('setDbMaterialsUnit')}` : ''}
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                       {(dbStats.materials_size_bytes / (1024 * 1024)).toFixed(3)} MB
+                    </span>
+                  </div>
+
+                  <div style={{ padding: '12px', backgroundColor: 'var(--bg-app)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>{t('setDbAccounts')}</span>
+                    <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginTop: '2px' }}>
+                      {dbStats.profiles_count !== undefined ? `${dbStats.profiles_count} ${t('setDbAccountsUnit')}` : ''}
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                      {(dbStats.profiles_size_bytes / (1024 * 1024)).toFixed(3)} MB
                     </span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Méretek lekérése...</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{t('setDbFetching')}</div>
             )}
           </div>
         )}
 
         {/* Buttons row */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
-          <button 
-            type="submit" 
-            className="btn-primary" 
+          <button
+            type="submit"
+            className="btn-primary"
             disabled={loading}
             style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '160px', justifyContent: 'center' }}
           >
