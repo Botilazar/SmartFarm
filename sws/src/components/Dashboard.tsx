@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Sprout, Search, Bell, LogOut, LayoutDashboard, Package,
   Plus, ArrowLeftRight, QrCode, Users as UsersIcon, ShieldCheck,
@@ -62,7 +62,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   // Toast states
   const [toast, setToast] = useState<Transaction | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
-  const toastTimerRef = useRef<{ hide: any; remove: any }>({ hide: null, remove: null });
+  const toastTimerRef = useRef<{ hide: ReturnType<typeof setTimeout> | null; remove: ReturnType<typeof setTimeout> | null }>({ hide: null, remove: null });
   const isInitialLoadRef = useRef(true);
   const prevTransactionsRef = useRef<Transaction[]>([]);
 
@@ -263,6 +263,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         const newestTx = transactions[0];
         const timeDiff = Date.now() - new Date(newestTx.timestamp).getTime();
         if (timeDiff < 15000) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           triggerToast(newestTx);
         }
       }
@@ -272,14 +273,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
 
   // Clean up timers on unmount
   useEffect(() => {
+    const timer = toastTimerRef.current;
     return () => {
-      if (toastTimerRef.current.hide) clearTimeout(toastTimerRef.current.hide);
-      if (toastTimerRef.current.remove) clearTimeout(toastTimerRef.current.remove);
+      if (timer.hide) clearTimeout(timer.hide);
+      if (timer.remove) clearTimeout(timer.remove);
     };
   }, []);
 
   // Fetch data
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       await dbService.init();
@@ -294,11 +296,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Listen to realtime updates from Supabase
   useEffect(() => {
@@ -361,8 +364,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         const txs = await dbService.getTransactions();
         setTransactions(txs);
       }
-    } catch (err: any) {
-      alert(err.message || 'Mentés sikertelen.');
+    } catch (err: unknown) {
+      alert((err as Error)?.message || 'Mentés sikertelen.');
       await loadData();
     }
   };
@@ -412,8 +415,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         const txs = await dbService.getTransactions();
         setTransactions(txs);
       }
-    } catch (err: any) {
-      alert(err.message || 'Módosítás sikertelen.');
+    } catch (err: unknown) {
+      alert((err as Error)?.message || 'Módosítás sikertelen.');
       await loadData();
     }
   };
@@ -447,9 +450,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     );
     try {
       await dbService.updateUserProfileRole(userId, newRole);
-    } catch (err: any) {
+    } catch (err: unknown) {
       await loadData();
-      alert(err.message || 'Hiba történt a jogosultság módosítása során.');
+      alert((err as Error)?.message || 'Hiba történt a jogosultság módosítása során.');
     }
   };
 

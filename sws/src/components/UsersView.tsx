@@ -63,6 +63,7 @@ export const UsersView: React.FC<UsersViewProps> = ({ users, currentUserEmail, o
     );
   };
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const sortedUsers = useMemo(() => {
     if (!sortField) return users;
     return [...users].sort((a, b) => {
@@ -128,7 +129,7 @@ export const UsersView: React.FC<UsersViewProps> = ({ users, currentUserEmail, o
           </thead>
           <tbody>
             {sortedUsers.map((u) => {
-              const isSelf = currentUserEmail && u.email?.toLowerCase() === currentUserEmail.toLowerCase();
+              const isSelf = Boolean(currentUserEmail && u.email?.toLowerCase() === currentUserEmail.toLowerCase());
               return (
                 <tr key={u.id}>
                   <td style={{ fontWeight: 600 }}>

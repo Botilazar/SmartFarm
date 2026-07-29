@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { X, Camera, AlertCircle, Keyboard } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
@@ -20,13 +20,70 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
   const qrInstanceRef = useRef<Html5Qrcode | null>(null);
   const readerId = 'qr-reader-container';
 
+  const stopScanning = useCallback(async () => {
+    if (qrInstanceRef.current && qrInstanceRef.current.isScanning) {
+      try {
+        await qrInstanceRef.current.stop();
+      } catch (err) {
+        console.error('Failed to stop scanning:', err);
+      }
+      qrInstanceRef.current = null;
+    }
+    setIsScanning(false);
+  }, []);
+
+  const startScanning = useCallback(async (cameraId: string) => {
+    try {
+      setScanError(null);
+      await stopScanning();
+
+      const html5QrCode = new Html5Qrcode(readerId);
+      qrInstanceRef.current = html5QrCode;
+
+      setIsScanning(true);
+      await html5QrCode.start(
+        cameraId,
+        {
+          fps: 10,
+          qrbox: { width: 220, height: 220 },
+        },
+        (decodedText) => {
+          try {
+            const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+            const context = new AudioCtx();
+            const osc = context.createOscillator();
+            const gain = context.createGain();
+            osc.connect(gain);
+            gain.connect(context.destination);
+            osc.frequency.value = 880; // A5 pitch
+            gain.gain.setValueAtTime(0.1, context.currentTime);
+            osc.start();
+            osc.stop(context.currentTime + 0.1);
+          } catch {
+            console.log('Audio feedback failed (no user gesture yet)');
+          }
+
+          stopScanning().then(() => {
+            onScanSuccess(decodedText.trim());
+          });
+        },
+        () => {
+          // Silent callback for frame scanning errors (very frequent)
+        }
+      );
+    } catch (err: unknown) {
+      console.error('Camera start failed:', err);
+      setScanError(t('qrErrorCameraStart'));
+      setIsScanning(false);
+    }
+  }, [readerId, onScanSuccess, stopScanning, t]);
+
   // Request cameras on load
   useEffect(() => {
     const requestCameraPermissionAndGetDevices = async () => {
       try {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
           const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          // Stop stream tracks immediately to free the camera
           stream.getTracks().forEach(track => track.stop());
         }
       } catch (err) {
@@ -37,7 +94,6 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
         const devices = await Html5Qrcode.getCameras();
         if (devices && devices.length > 0) {
           setCameras(devices);
-          // Prefer back camera if available (checking English and Hungarian terms)
           const backCam = devices.find((d) => {
             const label = d.label.toLowerCase();
             return (
@@ -51,8 +107,6 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
               label.includes('camera 1')
             );
           });
-          // Fallback: usually the last camera in the list is the rear camera on mobile devices.
-          // Otherwise, if only one, choose the first.
           setSelectedCameraId(backCam ? backCam.id : devices[devices.length - 1].id);
         } else {
           setScanError(t('qrErrorNoCamera'));
@@ -74,72 +128,15 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
     return () => {
       stopScanning();
     };
-  }, []);
+  }, [stopScanning, t]);
 
   // Automatically start scanning when camera selected
   useEffect(() => {
     if (selectedCameraId && !showManual) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       startScanning(selectedCameraId);
     }
-  }, [selectedCameraId, showManual]);
-
-  const startScanning = async (cameraId: string) => {
-    try {
-      setScanError(null);
-      await stopScanning();
-
-      const html5QrCode = new Html5Qrcode(readerId);
-      qrInstanceRef.current = html5QrCode;
-
-      setIsScanning(true);
-      await html5QrCode.start(
-        cameraId,
-        {
-          fps: 10,
-          qrbox: { width: 220, height: 220 },
-        },
-        (decodedText) => {
-          // Play a success sound if possible
-          try {
-            const context = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const osc = context.createOscillator();
-            const gain = context.createGain();
-            osc.connect(gain);
-            gain.connect(context.destination);
-            osc.frequency.value = 880; // A5 pitch
-            gain.gain.setValueAtTime(0.1, context.currentTime);
-            osc.start();
-            osc.stop(context.currentTime + 0.1);
-          } catch (e) {
-            console.log('Audio feedback failed (no user gesture yet)');
-          }
-
-          stopScanning().then(() => {
-            onScanSuccess(decodedText.trim());
-          });
-        },
-        () => {
-          // Silent callback for frame scanning errors (very frequent)
-        }
-      );
-    } catch (err: any) {
-      console.error('Camera start failed:', err);
-      setScanError(t('qrErrorCameraStart'));
-      setIsScanning(false);
-    }
-  };
-
-  const stopScanning = async () => {
-    if (qrInstanceRef.current && qrInstanceRef.current.isScanning) {
-      try {
-        await qrInstanceRef.current.stop();
-      } catch (err) {
-        console.error('Failed to stop scanning:', err);
-      }
-      qrInstanceRef.current = null;
-    }
-    setIsScanning(false);
-  };
+  }, [selectedCameraId, showManual, startScanning]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -35,7 +35,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Suggest next ID based on category selection
-  const handleCategoryChange = (cat: string) => {
+  const handleCategoryChange = React.useCallback((cat: string) => {
     setCategory(cat);
     
     // Auto-suggest next ID based on category prefix
@@ -71,14 +71,15 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
         setUnit('db');
       }
     }
-  };
+  }, [initialData, existingIds]);
 
   // Run on category select on mount to assign initial suggested ID
   React.useEffect(() => {
     if (!initialData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       handleCategoryChange(category);
     }
-  }, []);
+  }, [initialData, category, handleCategoryChange]);
 
   // CAMERA SNAPSHOT MANAGEMENT
   const startCamera = async () => {
@@ -182,8 +183,8 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
         image_url: imageUrl,
         expiration_date: expirationDate || undefined,
       });
-    } catch (err: any) {
-      setErrorMessage(err.message || t('mfErrorSave'));
+    } catch (err: unknown) {
+      setErrorMessage((err as Error)?.message || t('mfErrorSave'));
       setIsSubmitting(false);
     }
   };

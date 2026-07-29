@@ -41,6 +41,7 @@ export const Login: React.FC<LoginProps> = ({
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAuthView(initialView);
   }, [initialView]);
 
@@ -205,7 +206,7 @@ export const Login: React.FC<LoginProps> = ({
         // Offline / Mock Mode Login
         const savedUsersJson = localStorage.getItem('smartfarm_users');
         const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
-        const localUser = savedUsers.find((u: any) => u.email === loginEmail && u.password === loginPassword);
+        const localUser = savedUsers.find((u: { email: string; password?: string; id?: string; name: string; role: 'admin' | 'operator' }) => u.email === loginEmail && u.password === loginPassword);
 
         if (localUser) {
           onLogin({
@@ -225,8 +226,8 @@ export const Login: React.FC<LoginProps> = ({
           }
         }
       }
-    } catch (err: any) {
-      setError(formatAuthError(err.message));
+    } catch (err: unknown) {
+      setError(formatAuthError((err as Error)?.message));
     } finally {
       setLoading(false);
     }
@@ -302,7 +303,7 @@ export const Login: React.FC<LoginProps> = ({
         const savedUsersJson = localStorage.getItem('smartfarm_users');
         const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
 
-        if (savedUsers.some((u: any) => u.email === email)) {
+        if (savedUsers.some((u: { email: string }) => u.email === email)) {
           throw new Error(t('authErrorUserExists'));
         }
 
@@ -322,8 +323,8 @@ export const Login: React.FC<LoginProps> = ({
         setFullName('');
         setPassword('');
       }
-    } catch (err: any) {
-      setError(formatAuthError(err.message));
+    } catch (err: unknown) {
+      setError(formatAuthError((err as Error)?.message));
     } finally {
       setLoading(false);
     }
@@ -360,7 +361,7 @@ export const Login: React.FC<LoginProps> = ({
         // Check if user exists (either in local store or default fallback test accounts)
         const isDefaultAdmin = email === 'kovacs.gabor@ceg.hu';
         const isDefaultOperator = email === 'kezelo.janos@ceg.hu';
-        const userExists = savedUsers.some((u: any) => u.email === email) || isDefaultAdmin || isDefaultOperator;
+        const userExists = savedUsers.some((u: { email: string }) => u.email === email) || isDefaultAdmin || isDefaultOperator;
 
         if (!userExists) {
           throw new Error(t('authErrorNotRegistered'));
@@ -373,8 +374,8 @@ export const Login: React.FC<LoginProps> = ({
         setConfirmPassword('');
         setAuthView('reset-password');
       }
-    } catch (err: any) {
-      setError(formatAuthError(err.message));
+    } catch (err: unknown) {
+      setError(formatAuthError((err as Error)?.message));
     } finally {
       setLoading(false);
     }
@@ -430,14 +431,14 @@ export const Login: React.FC<LoginProps> = ({
         const savedUsersJson = localStorage.getItem('smartfarm_users');
         const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
 
-        const userIndex = savedUsers.findIndex((u: any) => u.email === targetEmail);
+        const userIndex = savedUsers.findIndex((u: { email: string }) => u.email === targetEmail);
 
         if (userIndex !== -1) {
           savedUsers[userIndex].password = password;
           localStorage.setItem('smartfarm_users', JSON.stringify(savedUsers));
         } else {
           // If it was one of the default mock accounts, we can create a record for it in local storage users
-          let newMockUser = {
+          const newMockUser = {
             name: targetEmail === 'kovacs.gabor@ceg.hu' ? 'Kovács Gábor' : 'Kezelő János',
             email: targetEmail,
             password: password,
@@ -458,8 +459,8 @@ export const Login: React.FC<LoginProps> = ({
           setSuccessMessage(null);
         }, 2500);
       }
-    } catch (err: any) {
-      setError(formatAuthError(err.message));
+    } catch (err: unknown) {
+      setError(formatAuthError((err as Error)?.message));
     } finally {
       setLoading(false);
     }

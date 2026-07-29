@@ -18,8 +18,8 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
     try {
       await dbService.deleteMaterial(material.id);
       onDeleteSuccess();
-    } catch (err: any) {
-      alert(err.message || 'Törlés sikertelen.');
+    } catch (err: unknown) {
+      alert((err as Error)?.message || 'Törlés sikertelen.');
     }
   };
 

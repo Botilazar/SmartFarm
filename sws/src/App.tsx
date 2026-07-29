@@ -16,10 +16,12 @@ interface UserSession {
 function App() {
   const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [isRecoveringPassword, setIsRecoveringPassword] = useState(false);
+  const [isRecoveringPassword, setIsRecoveringPassword] = useState(() => 
+    window.location.hash.includes('type=recovery') || window.location.href.includes('type=recovery')
+  );
 
   // Fetch user profile details from profiles table, falling back to user metadata
-  const fetchUserProfile = async (supabaseUser: any): Promise<UserSession | null> => {
+  const fetchUserProfile = async (supabaseUser: { id: string; email?: string; user_metadata?: { name?: string; role?: string } }): Promise<UserSession | null> => {
     const email = supabaseUser.email || '';
     
     // Check if email access is allowed
@@ -65,10 +67,6 @@ function App() {
 
   // Check session on mount and subscribe to auth changes
   useEffect(() => {
-    // Check if the URL is a password recovery link
-    if (window.location.hash.includes('type=recovery') || window.location.href.includes('type=recovery')) {
-      setIsRecoveringPassword(true);
-    }
 
     if (!isSupabaseConfigured) {
       const savedUser = localStorage.getItem('smartfarm_current_user') || sessionStorage.getItem('smartfarm_current_user');
@@ -90,6 +88,7 @@ function App() {
           sessionStorage.removeItem('smartfarm_current_user');
         }
       }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCheckingSession(false);
       return;
     }

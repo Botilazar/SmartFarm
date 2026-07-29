@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../db/supabaseClient';
 import { Camera, Save, User, RefreshCw, AlertCircle, Check, Trash2 } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
@@ -90,12 +90,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
         transactions_count: transCount || 0,
         profiles_count: profsCount || 0
       });
-    } catch (err: any) {
-      throw new Error("Sikertelen méretbecslés: " + err.message);
+    } catch (err: unknown) {
+      throw new Error("Sikertelen méretbecslés: " + (err as Error)?.message, { cause: err });
     }
   };
 
-  const fetchDbStats = async () => {
+  const fetchDbStats = useCallback(async () => {
     if (user.role !== 'admin') return;
     setStatsLoading(true);
     setStatsError(null);
@@ -128,17 +128,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
       } else {
         calculateLocalStorageStats();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching db stats:", err);
-      setStatsError(err.message || 'Sikertelen betöltés');
+      setStatsError((err as Error)?.message || 'Sikertelen betöltés');
     } finally {
       setStatsLoading(false);
     }
-  };
+  }, [user.role, isMock]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchDbStats();
-  }, []);
+  }, [fetchDbStats]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(user.avatar_url || null);
   const [oldPassword, setOldPassword] = useState('');
@@ -275,7 +276,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
           // Mock mode password update
           const savedUsersJson = localStorage.getItem('smartfarm_users');
           const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
-          const userIndex = savedUsers.findIndex((u: any) => u.email === user.email);
+          const userIndex = savedUsers.findIndex((u: { email: string }) => u.email === user.email);
 
           if (userIndex !== -1) {
             if (savedUsers[userIndex].password !== oldPassword) {
@@ -322,9 +323,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
       setOldPassword('');
       setNewPassword('');
       setSelectedFile(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving settings:', error);
-      setStatusMessage({ type: 'error', text: error.message || 'Sikertelen mentés.' });
+      setStatusMessage({ type: 'error', text: (error as Error)?.message || 'Sikertelen mentés.' });
     } finally {
       setLoading(false);
     }
@@ -352,9 +353,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ isMock, user, onUser
           text: `[Demó Mód] Jelszó-visszaállító e-mail kiküldése szimulálva a következő címre: ${user.email}`
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Password reminder error:', err);
-      setStatusMessage({ type: 'error', text: err.message || 'Nem sikerült elküldeni a jelszó emlékeztetőt.' });
+      setStatusMessage({ type: 'error', text: (err as Error)?.message || 'Nem sikerült elküldeni a jelszó emlékeztetőt.' });
     } finally {
       setLoading(false);
     }

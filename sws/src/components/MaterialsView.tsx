@@ -22,7 +22,6 @@ interface MaterialsViewProps {
 export const MaterialsView: React.FC<MaterialsViewProps> = ({
   materials,
   searchQuery,
-  setSearchQuery: _setSearchQuery,
   selectedCategory,
   setSelectedCategory,
   user,
@@ -122,11 +121,12 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
     });
   }, [materials, searchQuery, selectedCategory]);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const sortedMaterials = useMemo(() => {
     if (!sortField) return filteredMaterials;
     return [...filteredMaterials].sort((a, b) => {
-      let valA: any = '';
-      let valB: any = '';
+      let valA: string | number;
+      let valB: string | number;
 
       switch (sortField) {
         case 'name':

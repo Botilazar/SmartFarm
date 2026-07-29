@@ -66,13 +66,14 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         material_name: material.name,
         type: transactionType,
         quantity: transactionType === 'checkout' ? -qty : qty,
+        unit: material.unit,
         user_name: userName,
         notes: transactionNotes.trim() || undefined
       });
 
       onSubmitSuccess();
-    } catch (err: any) {
-      setTransactionError(err.message || t('txErrorFailed'));
+    } catch (err: unknown) {
+      setTransactionError((err as Error)?.message || t('txErrorFailed'));
     }
   };
 

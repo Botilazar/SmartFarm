@@ -38,6 +38,7 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadEmails();
   }, []);
 
@@ -83,13 +84,16 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
     setAddEmail('');
     setAddName('');
     setShowAddModal(false);
+    setAddLoading(true);
 
     try {
       await dbService.addAllowedEmail(addEmail.trim(), addName.trim() || undefined);
       if (onEmailsUpdated) onEmailsUpdated();
-    } catch (err: any) {
-      setAddError(err.message || 'Hiba történt az e-mail engedélyezése során.');
+    } catch (err: unknown) {
+      setAddError((err as Error)?.message || 'Hiba történt az e-mail engedélyezése során.');
       await loadEmails();
+    } finally {
+      setAddLoading(false);
     }
   };
 
@@ -217,7 +221,7 @@ export const AllowedEmailsView: React.FC<AllowedEmailsViewProps> = ({ currentUse
               </thead>
               <tbody>
                 {filteredEmails.map((item) => {
-                  const isSelf = currentUserEmail && item.email.toLowerCase() === currentUserEmail.toLowerCase();
+                  const isSelf = Boolean(currentUserEmail && item.email.toLowerCase() === currentUserEmail.toLowerCase());
                   return (
                     <tr key={item.id}>
                       <td style={{ fontWeight: 600 }}>

@@ -7,6 +7,15 @@ import { getStockStatus } from '../db/dbService';
 import type { Material, Transaction } from '../db/dbService';
 import { useTranslation } from '../context/LanguageContext';
 
+const categoryDemoData: Record<string, number[]> = {
+  'Permetszerek': [8, 12, 35, 42, 18],
+  'Műtrágyák': [0, 100, 300, 450, 150],
+  'Vetőmagok': [10, 40, 120, 80, 20],
+  'Tápok': [40, 90, 70, 50, 60],
+  'Adalékanyagok': [0, 2, 10, 15, 5],
+  'Egyéb': [4, 6, 15, 12, 8]
+};
+
 interface DashboardOverviewProps {
   materials: Material[];
   transactions: Transaction[];
@@ -62,15 +71,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     return list;
   };
 
-  const categoryDemoData: Record<string, number[]> = {
-    'Permetszerek': [8, 12, 35, 42, 18],
-    'Műtrágyák': [0, 100, 300, 450, 150],
-    'Vetőmagok': [10, 40, 120, 80, 20],
-    'Tápok': [40, 90, 70, 50, 60],
-    'Adalékanyagok': [0, 2, 10, 15, 5],
-    'Egyéb': [4, 6, 15, 12, 8]
-  };
-
   const months = getLastFiveMonths();
   let isUsingDemoData = false;
 
@@ -94,7 +94,11 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   });
 
   const totalActualSum = monthlyValues.reduce((sum, val) => sum + val, 0);
-  const finalMonthlyValues = totalActualSum > 0 ? monthlyValues : (categoryDemoData[trendCategory] || [10, 20, 30, 40, 50]);
+  const finalMonthlyValues = React.useMemo(() => {
+    return totalActualSum > 0 ? monthlyValues : (categoryDemoData[trendCategory] || [10, 20, 30, 40, 50]);
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
+  }, [totalActualSum, monthlyValues, trendCategory]);
+
   if (totalActualSum === 0) {
     isUsingDemoData = true;
   }
@@ -373,13 +377,11 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   }, [transactions]);
 
   // Real calculation for materials added in last 7 days
-  const materialsAddedPast7Days = React.useMemo(() => {
-    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-    return materials.filter(m => {
-      if (!m.created_at) return false;
-      return new Date(m.created_at).getTime() >= sevenDaysAgo;
-    }).length;
-  }, [materials]);
+  const materialsAddedPast7Days = materials.filter(m => {
+    if (!m.created_at) return false;
+    // eslint-disable-next-line react-hooks/purity
+    return new Date(m.created_at).getTime() >= Date.now() - (7 * 24 * 60 * 60 * 1000);
+  }).length;
 
   const categoryCounts = materials.reduce((acc, curr) => {
     acc[curr.category] = (acc[curr.category] || 0) + 1;
@@ -399,8 +401,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     if (!criticalSortField) return defaultCriticalItems;
 
     return [...defaultCriticalItems].sort((a, b) => {
-      let valA: any = '';
-      let valB: any = '';
+      let valA: string | number;
+      let valB: string | number;
 
       switch (criticalSortField) {
         case 'status':

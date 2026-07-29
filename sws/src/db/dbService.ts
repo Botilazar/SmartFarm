@@ -21,6 +21,7 @@ export interface Transaction {
   material_name: string;
   type: 'intake' | 'checkout'; // "Bevétel" | "Kivétel"
   quantity: number;            // pl. 50 vagy -2
+  unit?: string;
   timestamp: string;           // ISO dátum
   user_name: string;           // bejelentkezett felhasználó
   notes?: string;
@@ -121,7 +122,6 @@ const generateSeedMaterials = async (): Promise<Material[]> => {
   // - Red: 13 items
   let greensToGen = 82;
   let yellowsToGen = 28;
-  let redsToGen = 13;
 
   const getStatusToAssign = () => {
     if (greensToGen > 0) {
@@ -132,7 +132,6 @@ const generateSeedMaterials = async (): Promise<Material[]> => {
       yellowsToGen--;
       return 'yellow';
     }
-    redsToGen--;
     return 'red';
   };
 
@@ -163,17 +162,14 @@ const generateSeedMaterials = async (): Promise<Material[]> => {
       }
 
       const status = getStatusToAssign();
-      let max_quantity = 100;
-      let quantity = 0;
+      const max_quantity = 100;
+      let quantity: number;
 
       if (status === 'green') {
-        max_quantity = 100;
         quantity = Math.floor(Math.random() * 25) + 75; // 75% to 99%
       } else if (status === 'yellow') {
-        max_quantity = 100;
         quantity = Math.floor(Math.random() * 29) + 41; // 41% to 69%
       } else {
-        max_quantity = 100;
         quantity = Math.floor(Math.random() * 35) + 3; // 3% to 38%
       }
 
@@ -226,7 +222,7 @@ const generateSeedMaterials = async (): Promise<Material[]> => {
         try {
           const qr = await QRCode.toDataURL(m.id);
           return { ...m, qr_code_url: qr };
-        } catch (err) {
+        } catch {
           return m;
         }
       })
@@ -275,7 +271,7 @@ const getLocalUsers = (): UserProfile[] => {
   return memoryUsers!;
 };
 
-const saveLocalUsers = (users: any[]) => {
+const saveLocalUsers = (users: UserProfile[]) => {
   memoryUsers = users;
   localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
 };
@@ -669,8 +665,7 @@ export const dbService = {
   // FETCH USER PROFILES
   getUserProfiles: async (): Promise<UserProfile[]> => {
     if (dbService.isMockMode()) {
-      const savedUsersJson = localStorage.getItem(STORAGE_KEYS.USERS);
-      const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
+      const savedUsers: UserProfile[] = getLocalUsers();
       // Combine with the default mock users, prioritizing local storage settings if any
       const defaultUsers: UserProfile[] = [
         { id: '1', name: 'Kovács Gábor', email: 'kovacs.gabor@ceg.hu', role: 'admin' },
@@ -678,11 +673,11 @@ export const dbService = {
       ];
       
       const combined = defaultUsers.map(du => {
-        const saved = savedUsers.find((su: any) => su.email === du.email);
+        const saved = savedUsers.find((su) => su.email === du.email);
         return saved ? { ...du, role: saved.role } : du;
       });
 
-      savedUsers.forEach((u: any) => {
+      savedUsers.forEach((u) => {
         if (!combined.some(c => c.email === u.email)) {
           combined.push({
             id: u.id || Math.random().toString(36).substring(2, 9),
@@ -701,7 +696,7 @@ export const dbService = {
       .order('name', { ascending: true });
 
     if (error) throw error;
-    return (data || []).map((u: any) => ({
+    return (data || []).map((u: { id: string; email: string; name?: string; role?: string }) => ({
       id: u.id,
       email: u.email,
       name: u.name || 'Névtelen Felhasználó',
@@ -712,9 +707,9 @@ export const dbService = {
   // UPDATE USER PROFILE ROLE
   updateUserProfileRole: async (userId: string, newRole: 'admin' | 'operator'): Promise<void> => {
     if (dbService.isMockMode()) {
-      let savedUsers = getLocalUsers();
+      const savedUsers = getLocalUsers();
       
-      const idx = savedUsers.findIndex((u: any) => u.id === userId || u.email === userId);
+      const idx = savedUsers.findIndex((u) => u.id === userId || u.email === userId);
       if (idx !== -1) {
         savedUsers[idx].role = newRole;
         saveLocalUsers(savedUsers);
@@ -784,7 +779,7 @@ export const dbService = {
         return [];
       }
 
-      const mapped: AllowedEmail[] = (data || []).map((item: any) => ({
+      const mapped: AllowedEmail[] = (data || []).map((item: { id: string; email: string; name?: string; created_at?: string; requested_at?: string }) => ({
         id: item.id,
         email: item.email,
         name: item.name,
@@ -814,7 +809,7 @@ export const dbService = {
 
       // Check if user exists in mock users
       const savedUsers = getLocalUsers();
-      return savedUsers.some((u: any) => u.email.toLowerCase() === trimmedEmail);
+      return savedUsers.some((u) => u.email.toLowerCase() === trimmedEmail);
     }
 
     try {
@@ -838,7 +833,7 @@ export const dbService = {
         .maybeSingle();
 
       return !!profData;
-    } catch (err) {
+    } catch {
       return false;
     }
   },
@@ -908,7 +903,8 @@ export const dbService = {
     }));
   },
 
-  updateAccessRequestStatus: async (_id: string, _status: string): Promise<void> => {
+  updateAccessRequestStatus: async (...args: unknown[]): Promise<void> => {
+    void args;
     return;
   },
 

@@ -11,7 +11,7 @@ interface AccessRequestsViewProps {
 }
 
 export const AccessRequestsView: React.FC<AccessRequestsViewProps> = ({ onRequestsUpdated }) => {
-  const { t, language } = useTranslation();
+  const { language } = useTranslation();
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,6 +38,7 @@ export const AccessRequestsView: React.FC<AccessRequestsViewProps> = ({ onReques
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadRequests();
   }, []);
 
@@ -90,8 +91,8 @@ export const AccessRequestsView: React.FC<AccessRequestsViewProps> = ({ onReques
       setShowAddModal(false);
       await loadRequests();
       if (onRequestsUpdated) onRequestsUpdated();
-    } catch (err: any) {
-      setAddError(err.message || 'Hiba történt az e-mail engedélyezése során.');
+    } catch (err: unknown) {
+      setAddError((err as Error)?.message || 'Hiba történt az e-mail engedélyezése során.');
     } finally {
       setAddLoading(false);
     }

@@ -74,11 +74,12 @@ export const MovementsView: React.FC<MovementsViewProps> = ({
     );
   };
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const sortedTransactions = useMemo(() => {
     if (!sortField) return transactions;
     return [...transactions].sort((a, b) => {
-      let valA: any = '';
-      let valB: any = '';
+      let valA: string | number;
+      let valB: string | number;
 
       switch (sortField) {
         case 'timestamp':
