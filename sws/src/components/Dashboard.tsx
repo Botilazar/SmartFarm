@@ -1081,7 +1081,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <ShieldCheck size={18} style={{ color: 'var(--primary)' }} />
-                            <span>Engedélyezett e\u2011mailek</span>
+                            <span>{t('navAllowedEmails')}</span>
                           </div>
                           <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
                         </button>
@@ -1145,43 +1145,48 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         {/* Mobile bottom navigation tab bar */}
         <nav className="mobile-tab-bar">
           <button
+            type="button"
             className={`mobile-tab-item ${mobileTab === 'home' ? 'active' : ''}`}
             onClick={() => { setMobileTab('home'); setProfileSubView('none'); }}
           >
             <LayoutDashboard size={20} />
-            <span>Főoldal</span>
+            <span>{t('navDashboard')}</span>
           </button>
           <button
+            type="button"
             className={`mobile-tab-item ${mobileTab === 'materials' ? 'active' : ''}`}
             onClick={() => { setMobileTab('materials'); setProfileSubView('none'); }}
           >
             <Package size={20} />
-            <span>Anyagok</span>
+            <span>{t('navMaterials')}</span>
           </button>
           <button
-            className={`mobile-tab-item ${mobileTab === 'qr' ? 'active' : ''}`}
+            type="button"
+            className={`mobile-tab-item ${mobileTab === 'qr' || showScanner ? 'active' : ''}`}
             onClick={() => {
-              setMobileTab('home');
+              setMobileTab('qr');
               setProfileSubView('none');
               setShowScanner(true);
             }}
           >
-            <QrCode size={22} style={{ color: 'var(--primary)' }} />
-            <span style={{ color: 'var(--primary)', fontWeight: 600 }}>QR scan</span>
+            <QrCode size={20} />
+            <span>{t('qrScanBtn')}</span>
           </button>
           <button
+            type="button"
             className={`mobile-tab-item ${mobileTab === 'movements' ? 'active' : ''}`}
             onClick={() => { setMobileTab('movements'); setProfileSubView('none'); }}
           >
             <ArrowLeftRight size={20} />
-            <span>Mozgások</span>
+            <span>{t('navMovements')}</span>
           </button>
           <button
+            type="button"
             className={`mobile-tab-item ${mobileTab === 'profile' ? 'active' : ''}`}
             onClick={() => { setMobileTab('profile'); setProfileSubView('none'); }}
           >
             <UsersIcon size={20} />
-            <span>Profil</span>
+            <span>{t('navUsers')}</span>
           </button>
         </nav>
       </div>
@@ -1201,7 +1206,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
       {showScanner && (
         <QRScanner
           onScanSuccess={handleScanSuccess}
-          onClose={() => setShowScanner(false)}
+          onClose={() => {
+            setShowScanner(false);
+            setMobileTab('home');
+          }}
         />
       )}
 

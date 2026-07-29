@@ -268,6 +268,30 @@ const saveLocalTransactions = (txs: Transaction[]) => {
   localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(txs));
 };
 
+const getLocalUsers = (): UserProfile[] => {
+  if (memoryUsers) return memoryUsers;
+  const data = localStorage.getItem(STORAGE_KEYS.USERS);
+  memoryUsers = data ? JSON.parse(data) : [];
+  return memoryUsers!;
+};
+
+const saveLocalUsers = (users: any[]) => {
+  memoryUsers = users;
+  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+};
+
+const getLocalAllowedEmails = (): AllowedEmail[] => {
+  if (memoryAllowedEmails) return memoryAllowedEmails;
+  const data = localStorage.getItem(STORAGE_KEYS.ALLOWED_EMAILS);
+  memoryAllowedEmails = data ? JSON.parse(data) : [];
+  return memoryAllowedEmails!;
+};
+
+const saveLocalAllowedEmails = (emails: AllowedEmail[]) => {
+  memoryAllowedEmails = emails;
+  localStorage.setItem(STORAGE_KEYS.ALLOWED_EMAILS, JSON.stringify(emails));
+};
+
 // Seed LocalStorage if empty
 export const seedMockDataIfEmpty = async () => {
   if (getLocalMaterials().length === 0) {
@@ -688,13 +712,12 @@ export const dbService = {
   // UPDATE USER PROFILE ROLE
   updateUserProfileRole: async (userId: string, newRole: 'admin' | 'operator'): Promise<void> => {
     if (dbService.isMockMode()) {
-      const savedUsersJson = localStorage.getItem(STORAGE_KEYS.USERS);
-      let savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
+      let savedUsers = getLocalUsers();
       
       const idx = savedUsers.findIndex((u: any) => u.id === userId || u.email === userId);
       if (idx !== -1) {
         savedUsers[idx].role = newRole;
-        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(savedUsers));
+        saveLocalUsers(savedUsers);
       } else {
         const defaultUsers = [
           { id: '1', name: 'Kovács Gábor', email: 'kovacs.gabor@ceg.hu', role: 'admin' },
@@ -710,7 +733,7 @@ export const dbService = {
             role: newRole
           };
           savedUsers.push(newUser);
-          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(savedUsers));
+          saveLocalUsers(savedUsers);
         }
       }
       return;
@@ -729,28 +752,26 @@ export const dbService = {
   // GET ALL ALLOWED EMAILS
   getAllowedEmails: async (): Promise<AllowedEmail[]> => {
     if (dbService.isMockMode()) {
-      const storedJson = localStorage.getItem(STORAGE_KEYS.ALLOWED_EMAILS);
-      const emails: AllowedEmail[] = storedJson ? JSON.parse(storedJson) : [
-        {
-          id: 'mock-allowed-1',
-          email: 'kovacs.gabor@ceg.hu',
-          name: 'Kovács Gábor (Raktárvezető)',
-          created_at: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
-        },
-        {
-          id: 'mock-allowed-2',
-          email: 'kezelo.janos@ceg.hu',
-          name: 'Kezelő János (Raktári dolgozó)',
-          created_at: new Date(Date.now() - 15 * 24 * 3600 * 1000).toISOString()
-        }
-      ];
-
-      // Ensure storage initialized
-      if (!storedJson) {
-        localStorage.setItem(STORAGE_KEYS.ALLOWED_EMAILS, JSON.stringify(emails));
+      let emails = getLocalAllowedEmails();
+      if (emails.length === 0) {
+        emails = [
+          {
+            id: 'mock-allowed-1',
+            email: 'kovacs.gabor@ceg.hu',
+            name: 'Kovács Gábor (Raktárvezető)',
+            created_at: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
+          },
+          {
+            id: 'mock-allowed-2',
+            email: 'kezelo.janos@ceg.hu',
+            name: 'Kezelő János (Raktári dolgozó)',
+            created_at: new Date(Date.now() - 15 * 24 * 3600 * 1000).toISOString()
+          }
+        ];
+        saveLocalAllowedEmails(emails);
       }
 
-      return emails.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      return [...emails].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
 
     try {
@@ -792,8 +813,7 @@ export const dbService = {
       if (found) return true;
 
       // Check if user exists in mock users
-      const savedUsersJson = localStorage.getItem(STORAGE_KEYS.USERS);
-      const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
+      const savedUsers = getLocalUsers();
       return savedUsers.some((u: any) => u.email.toLowerCase() === trimmedEmail);
     }
 
@@ -838,11 +858,11 @@ export const dbService = {
       const existingIdx = list.findIndex(i => i.email.toLowerCase() === trimmedEmail);
       if (existingIdx !== -1) {
         list[existingIdx].name = name || list[existingIdx].name;
-        localStorage.setItem(STORAGE_KEYS.ALLOWED_EMAILS, JSON.stringify(list));
+        saveLocalAllowedEmails(list);
         return list[existingIdx];
       } else {
         list.push(newItem);
-        localStorage.setItem(STORAGE_KEYS.ALLOWED_EMAILS, JSON.stringify(list));
+        saveLocalAllowedEmails(list);
         return newItem;
       }
     }
@@ -866,7 +886,7 @@ export const dbService = {
     if (dbService.isMockMode()) {
       const list = await dbService.getAllowedEmails();
       const updated = list.filter(i => i.id !== idOrEmail && i.email.toLowerCase() !== idOrEmail.toLowerCase());
-      localStorage.setItem(STORAGE_KEYS.ALLOWED_EMAILS, JSON.stringify(updated));
+      saveLocalAllowedEmails(updated);
       return;
     }
 

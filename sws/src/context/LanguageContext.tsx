@@ -19,7 +19,7 @@ const translations: Record<Language, Record<string, string>> = {
     navMovements: 'Készletmozgások',
     navQrCodes: 'QR-kódok',
     navUsers: 'Felhasználók',
-    navAllowedEmails: 'Engedélyezett e\u2011mailek',
+    navAllowedEmails: 'Engedélyezett e-mailek',
     navSettings: 'Beállítások',
     navLogout: 'Kijelentkezés',
 
@@ -240,7 +240,7 @@ const translations: Record<Language, Record<string, string>> = {
     statUnchangedYesterday: 'Változatlan a tegnapi naphoz képest',
 
     // Allowed Emails View
-    allowedTitle: 'Engedélyezett e\u2011mailek',
+    allowedTitle: 'Engedélyezett e-mailek',
     allowedSubtitle: 'A raktári alkalmazásba regisztrálásra és belépésre jogosult e-mail címek (Raktárvezetői felület).',
     allowedCsvExport: 'CSV Export',
     allowedBtnAdd: 'Új e-mail engedélyezése',

@@ -468,7 +468,7 @@ export const Login: React.FC<LoginProps> = ({
   return (
     <div className="login-container" style={{ position: 'relative' }}>
       {/* Top Language Switcher */}
-      <div style={{ position: 'absolute', top: '16px', right: '20px', display: 'flex', gap: '6px', zIndex: 10 }}>
+      <div className="login-lang-switcher">
         {(['hu', 'en', 'de'] as const).map((lang) => (
           <button
             key={lang}
