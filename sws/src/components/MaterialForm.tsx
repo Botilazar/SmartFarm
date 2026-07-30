@@ -21,11 +21,12 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
   const [location, setLocation] = useState(initialData ? initialData.location : 'A1-01-01');
   const [imageUrl, setImageUrl] = useState(initialData ? initialData.image_url : '');
   const [expirationDate, setExpirationDate] = useState(initialData ? (initialData.expiration_date || '') : '');
-  
+  const [isGep, setIsGep] = useState<string>(initialData && initialData.is_gep !== undefined ? (initialData.is_gep ? 'true' : 'false') : '');
+
   // Camera capture states
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -37,20 +38,20 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
   // Suggest next ID based on category selection
   const handleCategoryChange = React.useCallback((cat: string) => {
     setCategory(cat);
-    
+
     // Auto-suggest next ID based on category prefix
     if (!initialData) {
       const prefix = cat === 'Permetszerek' ? 'PRM'
-                   : cat === 'Műtrágyák' ? 'MUT'
-                   : cat === 'Vetőmagok' ? 'VET'
-                   : cat === 'Tápok' ? 'TAP'
-                   : cat === 'Adalékanyagok' ? 'ADL'
-                   : 'EGY';
-      
+        : cat === 'Műtrágyák' ? 'MUT'
+          : cat === 'Vetőmagok' ? 'VET'
+            : cat === 'Tápok' ? 'TAP'
+              : cat === 'Adalékanyagok' ? 'ADL'
+                : 'EGY';
+
       // Find highest index in existing IDs for this prefix
       const pattern = new RegExp(`^${prefix}-(\\d+)$`);
       let maxNum = 0;
-      
+
       for (const curId of existingIds) {
         const match = curId.match(pattern);
         if (match) {
@@ -58,7 +59,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
           if (num > maxNum) maxNum = num;
         }
       }
-      
+
       const nextNum = String(maxNum + 1).padStart(3, '0');
       setId(`${prefix}-${nextNum}`);
 
@@ -85,7 +86,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
   const startCamera = async () => {
     setCameraError(null);
     setIsCameraActive(true);
-    
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
@@ -115,15 +116,15 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
       const video = videoRef.current;
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
-      
+
       if (ctx) {
         // Set canvas dimensions to match video stream
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        
+
         // Draw video frame to canvas
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
+
         // Save base64 image URL
         const dataUrl = canvas.toDataURL('image/jpeg');
         setImageUrl(dataUrl);
@@ -170,6 +171,11 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
       return;
     }
 
+    if (isGep === '') {
+      setErrorMessage(t('mfErrorGepRequired') || 'A GEP mező kitöltése kötelező!');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await onSave({
@@ -182,6 +188,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
         location: location.toUpperCase(),
         image_url: imageUrl,
         expiration_date: expirationDate || undefined,
+        is_gep: isGep === 'true',
       });
     } catch (err: unknown) {
       setErrorMessage((err as Error)?.message || t('mfErrorSave'));
@@ -204,7 +211,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body" style={{ maxHeight: '70vh' }}>
-            
+
             {errorMessage && (
               <div
                 style={{
@@ -329,21 +336,38 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="mExpiration">{t('mfLabelExpiration')}</label>
-              <input
-                id="mExpiration"
-                type="date"
-                className="form-input-text"
-                value={expirationDate}
-                onChange={(e) => setExpirationDate(e.target.value)}
-              />
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label" htmlFor="mExpiration">{t('mfLabelExpiration')}</label>
+                <input
+                  id="mExpiration"
+                  type="date"
+                  className="form-input-text"
+                  value={expirationDate}
+                  onChange={(e) => setExpirationDate(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="mGep">GEP</label>
+                <select
+                  id="mGep"
+                  className="form-select"
+                  value={isGep}
+                  onChange={(e) => setIsGep(e.target.value)}
+                  required
+                >
+                  <option value="">-- Válassz... --</option>
+                  <option value="true">Igen</option>
+                  <option value="false">Nem</option>
+                </select>
+              </div>
             </div>
 
             {/* Photo Section */}
             <div className="form-group">
               <label className="form-label">{t('mfLabelImage')}</label>
-              
+
               {isCameraActive ? (
                 <div>
                   <div className="camera-preview-container">
@@ -398,7 +422,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
                     <Camera size={20} />
                     <span style={{ fontSize: '12px' }}>{t('mfBtnTakePhoto')}</span>
                   </button>
-                  
+
                   <label
                     className="btn-secondary"
                     style={{

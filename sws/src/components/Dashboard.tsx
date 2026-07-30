@@ -396,6 +396,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         location: updatedData.location.toUpperCase(),
         image_url: updatedData.image_url,
         expiration_date: updatedData.expiration_date,
+        is_gep: updatedData.is_gep,
       };
 
       // Instant optimistic UI update
@@ -411,6 +412,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         location: updatedData.location.toUpperCase(),
         image_url: updatedData.image_url,
         expiration_date: updatedData.expiration_date,
+        is_gep: updatedData.is_gep,
       });
 
       // Log a transaction if quantity was modified directly during editing

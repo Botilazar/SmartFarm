@@ -1,4 +1,3 @@
--- Create materials table
 CREATE TABLE IF NOT EXISTS public.materials (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -10,11 +9,13 @@ CREATE TABLE IF NOT EXISTS public.materials (
   image_url TEXT,
   qr_code_url TEXT,
   is_inactive BOOLEAN DEFAULT FALSE,
+  is_gep BOOLEAN,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Migration helper: Add is_inactive column if it doesn't exist yet
 ALTER TABLE public.materials ADD COLUMN IF NOT EXISTS is_inactive BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.materials ADD COLUMN IF NOT EXISTS is_gep BOOLEAN;
 
 -- Create transactions table
 CREATE TABLE IF NOT EXISTS public.transactions (

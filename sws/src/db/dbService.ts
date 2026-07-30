@@ -14,6 +14,7 @@ export interface Material {
   expiration_date?: string;
   created_at?: string;
   is_inactive?: boolean;
+  is_gep?: boolean;
 }
 
 export interface Transaction {
@@ -78,11 +79,11 @@ const generateSeedMaterials = async (): Promise<Material[]> => {
 
   // 1. Defined items from screenshot
   const specificItems = [
-    { id: 'PRM-001', name: 'Permetszer A', quantity: 3, max_quantity: 50, unit: 'db', category: 'Permetszerek', location: 'A1-01-03', expiration_date: '2026-06-15', is_inactive: false },
-    { id: 'MUT-004', name: 'Műtrágya B', quantity: 12, max_quantity: 25, unit: 'kg', category: 'Műtrágyák', location: 'B2-04-02', expiration_date: '2026-07-28', is_inactive: false },
-    { id: 'VET-011', name: 'Vetőmag C', quantity: 5, max_quantity: 80, unit: 'kg', category: 'Vetőmagok', location: 'C1-02-01', expiration_date: '2027-03-01', is_inactive: false },
-    { id: 'PRM-007', name: 'Gombaölő szer D', quantity: 18, max_quantity: 35, unit: 'kg', category: 'Permetszerek', location: 'A1-03-05', is_inactive: false },
-    { id: 'MUT-002', name: 'Műtrágya E', quantity: 16, max_quantity: 33, unit: 'kg', category: 'Műtrágyák', location: 'B1-01-02', is_inactive: false },
+    { id: 'PRM-001', name: 'Permetszer A', quantity: 3, max_quantity: 50, unit: 'db', category: 'Permetszerek', location: 'A1-01-03', expiration_date: '2026-06-15', is_inactive: false, is_gep: false },
+    { id: 'MUT-004', name: 'Műtrágya B', quantity: 12, max_quantity: 25, unit: 'kg', category: 'Műtrágyák', location: 'B2-04-02', expiration_date: '2026-07-28', is_inactive: false, is_gep: false },
+    { id: 'VET-011', name: 'Vetőmag C', quantity: 5, max_quantity: 80, unit: 'kg', category: 'Vetőmagok', location: 'C1-02-01', expiration_date: '2027-03-01', is_inactive: false, is_gep: false },
+    { id: 'PRM-007', name: 'Gombaölő szer D', quantity: 18, max_quantity: 35, unit: 'kg', category: 'Permetszerek', location: 'A1-03-05', is_inactive: false, is_gep: false },
+    { id: 'MUT-002', name: 'Műtrágya E', quantity: 16, max_quantity: 33, unit: 'kg', category: 'Műtrágyák', location: 'B1-01-02', is_inactive: false, is_gep: false },
   ];
 
   // Map of category target counts
@@ -197,6 +198,7 @@ const generateSeedMaterials = async (): Promise<Material[]> => {
         image_url: '',
         qr_code_url: '',
         is_inactive: false,
+        is_gep: false,
         created_at: new Date().toISOString(),
       });
 
