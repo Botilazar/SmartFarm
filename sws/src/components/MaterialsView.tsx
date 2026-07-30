@@ -592,19 +592,68 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                   </td>
                   <td>{m.unit}</td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
-                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
-                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'nowrap' }}>
-                        {activeTab === 'inactive' ? (
-                          user.role === 'admin' && (
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'nowrap' }}>
+                      {activeTab === 'inactive' ? (
+                        user.role === 'admin' && (
+                          <>
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              style={{ padding: '6px', color: 'var(--primary)', width: 'auto' }}
+                              title={t('matRestore') || 'Visszaállítás'}
+                              onClick={() => onRestoreClick(m)}
+                            >
+                              <ArchiveRestore size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              style={{ padding: '6px', color: 'var(--danger)', width: 'auto' }}
+                              title={t('matDelete')}
+                              onClick={() => onDeleteClick(m)}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            style={{ padding: '6px 10px', fontSize: '11px', width: 'auto' }}
+                            onClick={() => onAddTransactionClick(m)}
+                          >
+                            {t('matIntake')} / {t('matCheckout')}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            style={{ padding: '6px', color: 'var(--primary)', width: 'auto' }}
+                            title={t('matPrint')}
+                            onClick={() => onPrintQrClick(m)}
+                          >
+                            <QrCode size={16} style={{ color: 'var(--primary)' }} />
+                          </button>
+                          {user.role === 'admin' && (
                             <>
                               <button
                                 type="button"
                                 className="btn-secondary"
                                 style={{ padding: '6px', color: 'var(--primary)', width: 'auto' }}
-                                title={t('matRestore') || 'Visszaállítás'}
-                                onClick={() => onRestoreClick(m)}
+                                title={t('matEdit')}
+                                onClick={() => onEditClick(m)}
                               >
-                                <ArchiveRestore size={16} />
+                                <Pencil size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-secondary"
+                                style={{ padding: '6px', color: 'var(--warning)', width: 'auto' }}
+                                title={t('matDeactivate') || 'Inaktiválás'}
+                                onClick={() => onDeactivateClick(m)}
+                              >
+                                <Archive size={16} />
                               </button>
                               <button
                                 type="button"
@@ -616,61 +665,11 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                                 <Trash2 size={16} />
                               </button>
                             </>
-                          )
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              className="btn-secondary"
-                              style={{ padding: '6px 10px', fontSize: '11px', width: 'auto' }}
-                              onClick={() => onAddTransactionClick(m)}
-                            >
-                              {t('matIntake')} / {t('matCheckout')}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-secondary"
-                              style={{ padding: '6px', color: 'var(--text-secondary)', width: 'auto' }}
-                              title={t('matPrint')}
-                              onClick={() => onPrintQrClick(m)}
-                            >
-                              <QrCode size={16} />
-                            </button>
-                            {user.role === 'admin' && (
-                              <>
-                                <button
-                                  type="button"
-                                  className="btn-secondary"
-                                  style={{ padding: '6px', color: 'var(--primary)', width: 'auto' }}
-                                  title={t('matEdit')}
-                                  onClick={() => onEditClick(m)}
-                                >
-                                  <Pencil size={16} />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn-secondary"
-                                  style={{ padding: '6px', color: 'var(--warning)', width: 'auto' }}
-                                  title={t('matDeactivate') || 'Inaktiválás'}
-                                  onClick={() => onDeactivateClick(m)}
-                                >
-                                  <Archive size={16} />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn-secondary"
-                                  style={{ padding: '6px', color: 'var(--danger)', width: 'auto' }}
-                                  title={t('matDelete')}
-                                  onClick={() => onDeleteClick(m)}
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </td>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               );
             })}
