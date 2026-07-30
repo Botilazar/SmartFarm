@@ -5,7 +5,7 @@ import { dbService } from '../db/dbService';
 import { useTranslation } from '../context/LanguageContext';
 
 interface LoginProps {
-  onLogin: (user: { id: string; name: string; email: string; role: 'admin' | 'operator'; avatar_url?: string }) => void;
+  onLogin: (user: { id: string; name: string; email: string; role: 'admin' | 'operator'; avatar_url?: string; is_gep?: boolean }) => void;
   initialView?: 'login' | 'register' | 'forgot' | 'reset-password';
   onPasswordResetComplete?: () => void;
 }
@@ -206,7 +206,7 @@ export const Login: React.FC<LoginProps> = ({
         // Offline / Mock Mode Login
         const savedUsersJson = localStorage.getItem('smartfarm_users');
         const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
-        const localUser = savedUsers.find((u: { email: string; password?: string; id?: string; name: string; role: 'admin' | 'operator' }) => u.email === loginEmail && u.password === loginPassword);
+        const localUser = savedUsers.find((u: { email: string; password?: string; id?: string; name: string; role: 'admin' | 'operator'; is_gep?: boolean }) => u.email === loginEmail && u.password === loginPassword);
 
         if (localUser) {
           onLogin({
@@ -214,13 +214,14 @@ export const Login: React.FC<LoginProps> = ({
             name: localUser.name,
             email: localUser.email,
             role: localUser.role,
+            is_gep: localUser.is_gep !== undefined ? localUser.is_gep : (localUser.role === 'admin'),
           });
         } else {
           // Fallback to default test accounts
           if (loginEmail === 'kovacs.gabor@ceg.hu' && loginPassword === 'password123') {
-            onLogin({ id: 'admin-mock-id', name: 'Kovács Gábor', email: loginEmail, role: 'admin' });
+            onLogin({ id: 'admin-mock-id', name: 'Kovács Gábor', email: loginEmail, role: 'admin', is_gep: true });
           } else if (loginEmail === 'kezelo.janos@ceg.hu' && loginPassword === 'password123') {
-            onLogin({ id: 'operator-mock-id', name: 'Kezelő János', email: loginEmail, role: 'operator' });
+            onLogin({ id: 'operator-mock-id', name: 'Kezelő János', email: loginEmail, role: 'operator', is_gep: false });
           } else {
             throw new Error(t('authErrorInvalidCredentials'));
           }
@@ -290,6 +291,7 @@ export const Login: React.FC<LoginProps> = ({
               name: fullName,
               email: data.user.email || email,
               role: role,
+              is_gep: false,
             });
           } else {
             setSuccessMessage(t('authSuccessRegister'));
@@ -313,6 +315,7 @@ export const Login: React.FC<LoginProps> = ({
           email,
           password,
           role,
+          is_gep: false, // Default newly registered operator to non-GEP
         };
 
         savedUsers.push(newUser);

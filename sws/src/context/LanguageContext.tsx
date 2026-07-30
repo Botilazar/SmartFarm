@@ -106,6 +106,10 @@ const translations: Record<Language, Record<string, string>> = {
     matRestoreWarning: 'A visszaállítás után az anyag újra bevételezhető és kiadható lesz, valamint a QR-kód beolvasása is működni fog.',
     matRestoreBtn: 'Visszaállítás megerősítése',
     matErrorInactiveScan: 'Figyelem! A(z) "{name}" ({id}) anyag jelenleg inaktív. Tranzakció nem végezhető vele!',
+    matErrorGepScan: 'Ez a termék GEP-es és nincs joga hozzá!',
+    matGepNoPermissionTitle: 'Nincs jogosultság',
+    matGepNoPermissionBody: 'A(z) "{name}" ({id}) termék GEP-es és nincs jogosultságod hozzá!',
+    ok: 'Rendben',
 
     // Movements View
     movTitle: 'Készletmozgások naplója',
@@ -445,6 +449,10 @@ const translations: Record<Language, Record<string, string>> = {
     matRestoreWarning: 'After restoration, the material can be checked in and out again, and QR code scanning will function normally.',
     matRestoreBtn: 'Confirm Restoration',
     matErrorInactiveScan: 'Warning! The material "{name}" ({id}) is currently inactive. Transactions are disabled!',
+    matErrorGepScan: 'This product is GEP and you do not have permission for it!',
+    matGepNoPermissionTitle: 'Access Denied',
+    matGepNoPermissionBody: 'The product "{name}" ({id}) is GEP and you do not have permission for it!',
+    ok: 'OK',
 
     // Movements View
     movTitle: 'Inventory Movements Log',
@@ -784,6 +792,10 @@ const translations: Record<Language, Record<string, string>> = {
     matRestoreWarning: 'Nach der Wiederherstellung kann das Material wieder ein- und ausgelagert werden, und das Scannen des QR-Codes funktioniert normal.',
     matRestoreBtn: 'Wiederherstellung bestätigen',
     matErrorInactiveScan: 'Warnung! Das Material "{name}" ({id}) ist derzeit inaktiv. Buchungen sind nicht erlaubt!',
+    matErrorGepScan: 'Dieses Produkt ist GEP und Sie haben keine Berechtigung dafür!',
+    matGepNoPermissionTitle: 'Keine Berechtigung',
+    matGepNoPermissionBody: 'Das Produkt "{name}" ({id}) ist GEP und Sie haben keine Berechtigung dafür!',
+    ok: 'OK',
 
     // Movements View
     movTitle: 'Lagerbewegungsprotokoll',

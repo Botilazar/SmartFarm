@@ -24,11 +24,12 @@ import { QrPrintModal } from './QrPrintModal';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { DeactivateConfirmModal } from './DeactivateConfirmModal';
 import { RestoreConfirmModal } from './RestoreConfirmModal';
+import { PermissionDeniedModal } from './PermissionDeniedModal';
 
 interface DashboardProps {
-  user: { id: string; name: string; email: string; role: 'admin' | 'operator'; avatar_url?: string };
+  user: { id: string; name: string; email: string; role: 'admin' | 'operator'; avatar_url?: string; is_gep?: boolean };
   onLogout: () => void;
-  onUserUpdate?: (updatedUser: Partial<{ id: string; name: string; email: string; role: 'admin' | 'operator'; avatar_url?: string }>) => void;
+  onUserUpdate?: (updatedUser: Partial<{ id: string; name: string; email: string; role: 'admin' | 'operator'; avatar_url?: string; is_gep?: boolean }>) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpdate }) => {
@@ -46,6 +47,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   const [deleteConfirmMaterial, setDeleteConfirmMaterial] = useState<Material | null>(null);
   const [deactivateConfirmMaterial, setDeactivateConfirmMaterial] = useState<Material | null>(null);
   const [restoreConfirmMaterial, setRestoreConfirmMaterial] = useState<Material | null>(null);
+  const [permissionDeniedMaterial, setPermissionDeniedMaterial] = useState<Material | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Interaction states
@@ -435,6 +437,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     }
   };
 
+  // Wrapper for opening transaction modal with GEP validation
+  const handleOpenTransaction = (mat: Material) => {
+    if (mat.is_gep && !user.is_gep) {
+      setPermissionDeniedMaterial(mat);
+      return;
+    }
+    setTransactionMaterial(mat);
+  };
+
   // Open transaction dialog on QR Scan success or Manual click
   const handleScanSuccess = async (materialId: string) => {
     setShowScanner(false);
@@ -445,6 +456,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
           .replace('{name}', mat.name)
           .replace('{id}', mat.id);
         alert(errorMsg);
+      } else if (mat.is_gep && !user.is_gep) {
+        setPermissionDeniedMaterial(mat);
       } else {
         setTransactionMaterial(mat);
       }
@@ -846,7 +859,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
                 user={user}
-                onAddTransactionClick={setTransactionMaterial}
+                onAddTransactionClick={handleOpenTransaction}
                 onPrintQrClick={setViewingQrMaterial}
                 onDeleteClick={handleDeleteMaterial}
                 onEditClick={setEditingMaterial}
@@ -1039,7 +1052,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               selectedCategory={selectedCategory}
               setSelectedCategory={setSelectedCategory}
               user={user}
-              onAddTransactionClick={setTransactionMaterial}
+              onAddTransactionClick={handleOpenTransaction}
               onPrintQrClick={setViewingQrMaterial}
               onDeleteClick={handleDeleteMaterial}
               onEditClick={setEditingMaterial}
@@ -1324,6 +1337,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
             setRestoreConfirmMaterial(null);
             await loadData();
           }}
+        />
+      )}
+
+      {/* 5.3. Modal: PERMISSION DENIED POPUP */}
+      {permissionDeniedMaterial && (
+        <PermissionDeniedModal
+          materialName={permissionDeniedMaterial.name}
+          materialId={permissionDeniedMaterial.id}
+          onClose={() => setPermissionDeniedMaterial(null)}
         />
       )}
 

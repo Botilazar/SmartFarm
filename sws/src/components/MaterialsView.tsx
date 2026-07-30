@@ -38,6 +38,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
 }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'active' | 'inactive'>('active');
+  const [selectedGepFilter, setSelectedGepFilter] = useState<'All' | 'Igen' | 'Nem'>('All');
   const [sortField, setSortField] = useState<'name' | 'category' | 'location' | 'stock' | 'unit' | 'expiration' | null>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -138,15 +139,20 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
         m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         m.location.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === 'All' || m.category === selectedCategory;
+      const matchesGep = selectedGepFilter === 'All'
+        ? true
+        : selectedGepFilter === 'Igen'
+          ? !!m.is_gep
+          : !m.is_gep;
 
       const isArchived = !!m.is_inactive;
       const matchesTab = user.role === 'admin'
         ? (activeTab === 'inactive' ? isArchived : !isArchived)
         : !isArchived;
 
-      return matchesSearch && matchesCategory && matchesTab;
+      return matchesSearch && matchesCategory && matchesGep && matchesTab;
     });
-  }, [materials, searchQuery, selectedCategory, activeTab, user.role]);
+  }, [materials, searchQuery, selectedCategory, selectedGepFilter, activeTab, user.role]);
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const sortedMaterials = useMemo(() => {
@@ -204,7 +210,17 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <select
               className="form-select"
-              style={{ width: '110px', padding: '6px', fontSize: '12px' }}
+              style={{ width: '85px', padding: '6px', fontSize: '12px' }}
+              value={selectedGepFilter}
+              onChange={(e) => setSelectedGepFilter(e.target.value as 'All' | 'Igen' | 'Nem')}
+            >
+              <option value="All">GEP: Mind</option>
+              <option value="Igen">GEP: Igen</option>
+              <option value="Nem">GEP: Nem</option>
+            </select>
+            <select
+              className="form-select"
+              style={{ width: '100px', padding: '6px', fontSize: '12px' }}
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
@@ -446,29 +462,59 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
 
       {/* Filters & Export Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px', width: '100%' }}>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>{t('matCategories')}</span>
-          <div style={{ display: 'flex', gap: '6px', backgroundColor: 'var(--bg-app)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-            {['All', 'Permetszerek', 'Műtrágyák', 'Vetőmagok', 'Tápok', 'Adalékanyagok', 'Egyéb'].map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: selectedCategory === cat ? 600 : 500,
-                  border: 'none',
-                  backgroundColor: selectedCategory === cat ? 'var(--primary)' : 'transparent',
-                  color: selectedCategory === cat ? 'white' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onClick={() => setSelectedCategory(cat)}
-              >
-                {cat === 'All' ? t('matAll') : t(`cat_${cat}`)}
-              </button>
-            ))}
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          {/* GEP Filter */}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>GEP</span>
+            <div style={{ display: 'flex', gap: '6px', backgroundColor: 'var(--bg-app)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              {(['All', 'Igen', 'Nem'] as const).map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: selectedGepFilter === opt ? 600 : 500,
+                    border: 'none',
+                    backgroundColor: selectedGepFilter === opt ? 'var(--primary)' : 'transparent',
+                    color: selectedGepFilter === opt ? 'white' : 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => setSelectedGepFilter(opt)}
+                >
+                  {opt === 'All' ? 'Mind' : opt}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Categories Filter */}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>{t('matCategories')}</span>
+            <div style={{ display: 'flex', gap: '6px', backgroundColor: 'var(--bg-app)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              {['All', 'Permetszerek', 'Műtrágyák', 'Vetőmagok', 'Tápok', 'Adalékanyagok', 'Egyéb'].map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: selectedCategory === cat ? 600 : 500,
+                    border: 'none',
+                    backgroundColor: selectedCategory === cat ? 'var(--primary)' : 'transparent',
+                    color: selectedCategory === cat ? 'white' : 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => setSelectedCategory(cat)}
+                >
+                  {cat === 'All' ? t('matAll') : t(`cat_${cat}`)}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

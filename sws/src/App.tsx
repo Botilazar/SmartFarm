@@ -11,6 +11,7 @@ interface UserSession {
   email: string;
   role: 'admin' | 'operator';
   avatar_url?: string;
+  is_gep?: boolean;
 }
 
 function App() {
@@ -40,7 +41,7 @@ function App() {
     try {
       const { data, error } = await supabase!
         .from('profiles')
-        .select('name, role, avatar_url')
+        .select('name, role, avatar_url, is_gep')
         .eq('id', supabaseUser.id)
         .maybeSingle();
         
@@ -50,7 +51,8 @@ function App() {
           name: data.name || metadataName,
           email: email,
           role: data.role === 'admin' ? 'admin' : 'operator',
-          avatar_url: data.avatar_url || undefined
+          avatar_url: data.avatar_url || undefined,
+          is_gep: data.is_gep !== undefined ? !!data.is_gep : (data.role === 'admin')
         };
       }
     } catch (err) {
@@ -61,7 +63,8 @@ function App() {
       id: supabaseUser.id,
       name: metadataName,
       email: email,
-      role: metadataRole === 'admin' ? 'admin' : 'operator'
+      role: metadataRole === 'admin' ? 'admin' : 'operator',
+      is_gep: metadataRole === 'admin'
     };
   };
 
