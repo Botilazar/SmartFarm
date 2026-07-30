@@ -615,11 +615,11 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                           <button
                             type="button"
                             className="btn-secondary"
-                            style={{ padding: '6px', color: 'var(--text-secondary)', width: 'auto' }}
+                            style={{ padding: '6px', color: 'var(--primary)', width: 'auto' }}
                             title={t('matPrint')}
                             onClick={() => onPrintQrClick(m)}
                           >
-                            <QrCode size={16} />
+                            <QrCode size={16} style={{ color: 'var(--primary)' }} />
                           </button>
                           {user.role === 'admin' && (
                             <>
