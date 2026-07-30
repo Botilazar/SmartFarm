@@ -86,13 +86,13 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
     today.setHours(0, 0, 0, 0);
     const expiration = new Date(expDate);
     expiration.setHours(0, 0, 0, 0);
-    
+
     if (expiration < today) return 'expired';
-    
+
     // 30 days in milliseconds
     const diffTime = expiration.getTime() - today.getTime();
     if (diffTime <= 30 * 24 * 60 * 60 * 1000) return 'expiring-soon';
-    
+
     return 'ok';
   };
 
@@ -118,13 +118,13 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
 
   const filteredMaterials = useMemo(() => {
     return materials.filter(m => {
-      const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            m.location.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.location.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === 'All' || m.category === selectedCategory;
-      
+
       const isArchived = !!m.is_inactive;
-      const matchesTab = user.role === 'admin' 
+      const matchesTab = user.role === 'admin'
         ? (activeTab === 'inactive' ? isArchived : !isArchived)
         : !isArchived;
 
@@ -253,10 +253,10 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
           {sortedMaterials.map((m) => {
             const status = getStockStatus(m.quantity, m.max_quantity);
             const pct = Math.round((m.quantity / m.max_quantity) * 100);
-            
+
             return (
-              <div 
-                key={m.id} 
+              <div
+                key={m.id}
                 className="mobile-stock-card"
                 style={{ padding: '12px', position: 'relative' }}
                 onClick={() => onMobileScanClick && onMobileScanClick(m.id)}
@@ -273,12 +273,12 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                     <h4 style={{ fontSize: '13px' }}>{m.name}</h4>
                     <p style={{ fontSize: '10px' }}>{t('statId')}: {m.id} • {t('statLocation')}: {m.location}</p>
                     {m.expiration_date && (
-                      <p style={{ 
-                        fontSize: '9px', 
-                        color: checkExpirationStatus(m.expiration_date) === 'expired' 
-                          ? 'var(--danger)' 
-                          : checkExpirationStatus(m.expiration_date) === 'expiring-soon' 
-                            ? 'var(--warning)' 
+                      <p style={{
+                        fontSize: '9px',
+                        color: checkExpirationStatus(m.expiration_date) === 'expired'
+                          ? 'var(--danger)'
+                          : checkExpirationStatus(m.expiration_date) === 'expiring-soon'
+                            ? 'var(--warning)'
                             : 'var(--text-secondary)',
                         fontWeight: checkExpirationStatus(m.expiration_date) !== 'ok' ? 700 : 500,
                         display: 'flex',
@@ -292,19 +292,19 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                     )}
                   </div>
                 </div>
-                <div 
-                  className="mobile-stock-card-right" 
-                  style={{ 
-                    marginRight: user.role === 'admin' 
-                      ? (activeTab === 'inactive' ? '64px' : '88px') 
-                      : '0px' 
+                <div
+                  className="mobile-stock-card-right"
+                  style={{
+                    marginRight: user.role === 'admin'
+                      ? (activeTab === 'inactive' ? '64px' : '88px')
+                      : '0px'
                   }}
                 >
                   <span className={`mobile-stock-qty ${status}`} style={{ fontSize: '13px' }}>{m.quantity} {m.unit}</span>
                   <span className="pct-badge" style={{ fontSize: '10px', margin: 0 }}>{pct}%</span>
                 </div>
                 {user.role === 'admin' && (
-                  <div 
+                  <div
                     style={{
                       position: 'absolute',
                       right: '12px',
@@ -428,7 +428,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
           </button>
         </div>
       )}
-      
+
       {/* Filters & Export Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px', width: '100%' }}>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -456,7 +456,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
             ))}
           </div>
         </div>
-        
+
         <button
           type="button"
           className="btn-secondary"
@@ -515,9 +515,14 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
             {sortedMaterials.map((m) => {
               const status = getStockStatus(m.quantity, m.max_quantity);
               const pct = Math.round((m.quantity / m.max_quantity) * 100);
-              
+
               return (
-                <tr key={m.id}>
+                <tr
+                  key={m.id}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => onAddTransactionClick(m)}
+                  title={`${t('matIntake')} / ${t('matCheckout')}`}
+                >
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       {m.image_url ? (
@@ -542,9 +547,9 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span className={`qty-val ${status}`}>{m.quantity}</span>
-                      <div className="progress-bar-container">
-                        <div 
-                          className={`progress-bar-fill ${status}`} 
+                      <div className="progress-bar-container" style={{ cursor: 'pointer' }}>
+                        <div
+                          className={`progress-bar-fill ${status}`}
                           style={{ width: `${Math.min(100, pct)}%` }}
                         />
                       </div>
@@ -553,12 +558,12 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                   </td>
                   <td>
                     {m.expiration_date ? (
-                      <span 
-                        style={{ 
-                          color: checkExpirationStatus(m.expiration_date) === 'expired' 
-                            ? 'var(--danger)' 
-                            : checkExpirationStatus(m.expiration_date) === 'expiring-soon' 
-                              ? 'var(--warning)' 
+                      <span
+                        style={{
+                          color: checkExpirationStatus(m.expiration_date) === 'expired'
+                            ? 'var(--danger)'
+                            : checkExpirationStatus(m.expiration_date) === 'expiring-soon'
+                              ? 'var(--warning)'
                               : 'var(--text-primary)',
                           fontWeight: checkExpirationStatus(m.expiration_date) !== 'ok' ? 600 : 'normal'
                         }}
@@ -572,7 +577,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                     )}
                   </td>
                   <td>{m.unit}</td>
-                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'nowrap' }}>
                       {activeTab === 'inactive' ? (
                         user.role === 'admin' && (

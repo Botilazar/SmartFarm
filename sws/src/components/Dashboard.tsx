@@ -81,10 +81,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   const desktopSearchRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
 
-  // Compute live search results (min 3 chars)
+  // Compute live search results (min 2 chars)
   const headerSearchResults = React.useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (q.length < 3) return [];
+    if (q.length < 2) return [];
     return materials.filter(m =>
       !m.is_inactive && (
         m.name.toLowerCase().includes(q) ||
@@ -97,16 +97,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
 
   // Click outside listener to close search dropdown
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        desktopSearchRef.current && !desktopSearchRef.current.contains(event.target as Node) &&
-        mobileSearchRef.current && !mobileSearchRef.current.contains(event.target as Node)
-      ) {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      const desktopClickedInside = desktopSearchRef.current && desktopSearchRef.current.contains(event.target as Node);
+      const mobileClickedInside = mobileSearchRef.current && mobileSearchRef.current.contains(event.target as Node);
+
+      if (!desktopClickedInside && !mobileClickedInside) {
         setShowSearchDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, []);
 
   const handleSelectSearchResult = (material: Material) => {
@@ -122,6 +126,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
       setShowSearchDropdown(false);
       setActiveView('materials');
       setMobileTab('materials');
+    } else if (e.key === 'Escape') {
+      setShowSearchDropdown(false);
     }
   };
 
@@ -596,12 +602,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onFocus={() => {
-                  if (searchQuery.trim().length >= 3) setShowSearchDropdown(true);
+                  if (searchQuery.trim().length >= 2) setShowSearchDropdown(true);
                 }}
                 onChange={(e) => {
                   const val = e.target.value;
                   setSearchQuery(val);
-                  if (val.trim().length >= 3) {
+                  if (val.trim().length >= 2) {
                     setShowSearchDropdown(true);
                   } else {
                     setShowSearchDropdown(false);
@@ -611,7 +617,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               />
 
               {/* Instant Search Results Dropdown */}
-              {showSearchDropdown && searchQuery.trim().length >= 3 && (
+              {showSearchDropdown && searchQuery.trim().length >= 2 && (
                 <div
                   className="search-dropdown-menu"
                   style={{
@@ -710,7 +716,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 }}
                 onClick={() => setShowScanner(true)}
               >
-                <QrCode size={16} />
+                <QrCode size={16} style={{ color: 'var(--primary)' }} />
                 <span>{t('qrScanBtn')}</span>
               </button>
 
@@ -895,7 +901,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
             </div>
             <div className="mobile-header-icons">
               <button className="mobile-badge-btn" onClick={() => setShowScanner(true)}>
-                <QrCode size={22} />
+                <QrCode size={22} style={{ color: 'var(--primary)' }} />
               </button>
               <div className="notification-bell-container" ref={mobileNotificationsRef} style={{ position: 'relative' }}>
                 <button
@@ -990,7 +996,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 onChange={(e) => {
                   const val = e.target.value;
                   setSearchQuery(val);
-                  if (val.trim().length >= 3) {
+                  if (val.trim().length >= 2) {
                     setMobileTab('materials');
                     setActiveView('materials');
                   }
