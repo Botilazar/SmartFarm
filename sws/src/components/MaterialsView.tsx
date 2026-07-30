@@ -80,20 +80,36 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
     document.body.removeChild(link);
   };
 
-  const checkExpirationStatus = (expDate: string | undefined): 'expired' | 'expiring-soon' | 'ok' | 'none' => {
-    if (!expDate) return 'none';
+  const getExpirationInfo = (expDate: string | undefined): {
+    color: string;
+    isExpired: boolean;
+    category: 'more-than-year' | 'half-to-year' | 'week-to-half' | 'under-week' | 'none';
+  } => {
+    if (!expDate) return { color: 'var(--text-light)', isExpired: false, category: 'none' };
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const expiration = new Date(expDate);
     expiration.setHours(0, 0, 0, 0);
 
-    if (expiration < today) return 'expired';
+    const diffMs = expiration.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-    // 30 days in milliseconds
-    const diffTime = expiration.getTime() - today.getTime();
-    if (diffTime <= 30 * 24 * 60 * 60 * 1000) return 'expiring-soon';
-
-    return 'ok';
+    if (diffDays < 0) {
+      // Már lejárt -> piros
+      return { color: '#ef4444', isExpired: true, category: 'under-week' };
+    } else if (diffDays < 7) {
+      // Azalatt (1 hét alatt) -> piros
+      return { color: '#ef4444', isExpired: false, category: 'under-week' };
+    } else if (diffDays <= 182) {
+      // Félév és 1 hét között -> narancs
+      return { color: '#f97316', isExpired: false, category: 'week-to-half' };
+    } else if (diffDays <= 365) {
+      // 1 év és félév között -> citrom (sárga)
+      return { color: '#eab308', isExpired: false, category: 'half-to-year' };
+    } else {
+      // 1 évnél több -> szürke
+      return { color: '#94a3b8', isExpired: false, category: 'more-than-year' };
+    }
   };
 
   const handleSort = (field: 'name' | 'category' | 'location' | 'stock' | 'unit' | 'expiration') => {
@@ -272,24 +288,23 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                   <div className="mobile-stock-info">
                     <h4 style={{ fontSize: '13px' }}>{m.name}</h4>
                     <p style={{ fontSize: '10px' }}>{t('statId')}: {m.id} • {t('statLocation')}: {m.location}</p>
-                    {m.expiration_date && (
-                      <p style={{
-                        fontSize: '9px',
-                        color: checkExpirationStatus(m.expiration_date) === 'expired'
-                          ? 'var(--danger)'
-                          : checkExpirationStatus(m.expiration_date) === 'expiring-soon'
-                            ? 'var(--warning)'
-                            : 'var(--text-secondary)',
-                        fontWeight: checkExpirationStatus(m.expiration_date) !== 'ok' ? 700 : 500,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        marginTop: '2px'
-                      }}>
-                        <Calendar size={10} />
-                        <span>{t('matExpiration')}: {m.expiration_date} {checkExpirationStatus(m.expiration_date) === 'expired' ? `(${t('matExpired')})` : ''}</span>
-                      </p>
-                    )}
+                    {m.expiration_date && (() => {
+                      const info = getExpirationInfo(m.expiration_date);
+                      return (
+                        <p style={{
+                          fontSize: '9px',
+                          color: info.color,
+                          fontWeight: info.category === 'under-week' ? 700 : (info.category === 'week-to-half' ? 600 : 500),
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          marginTop: '2px'
+                        }}>
+                          <Calendar size={10} />
+                          <span>{t('matExpiration')}: {m.expiration_date} {info.isExpired ? `(${t('matExpired')})` : ''}</span>
+                        </p>
+                      );
+                    })()}
                   </div>
                 </div>
                 <div
@@ -557,20 +572,19 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                     </div>
                   </td>
                   <td>
-                    {m.expiration_date ? (
-                      <span
-                        style={{
-                          color: checkExpirationStatus(m.expiration_date) === 'expired'
-                            ? 'var(--danger)'
-                            : checkExpirationStatus(m.expiration_date) === 'expiring-soon'
-                              ? 'var(--warning)'
-                              : 'var(--text-primary)',
-                          fontWeight: checkExpirationStatus(m.expiration_date) !== 'ok' ? 600 : 'normal'
-                        }}
-                      >
-                        {m.expiration_date}
-                      </span>
-                    ) : (
+                    {m.expiration_date ? (() => {
+                      const info = getExpirationInfo(m.expiration_date);
+                      return (
+                        <span
+                          style={{
+                            color: info.color,
+                            fontWeight: info.category === 'under-week' ? 700 : (info.category === 'week-to-half' ? 600 : 500)
+                          }}
+                        >
+                          {m.expiration_date} {info.isExpired ? `(${t('matExpired')})` : ''}
+                        </span>
+                      );
+                    })() : (
                       <span style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>
                         {t('matNoExpiration')}
                       </span>
