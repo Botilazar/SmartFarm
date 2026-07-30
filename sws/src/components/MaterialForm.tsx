@@ -274,7 +274,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
                           checked={category === 'Folyékony műtrágya'}
                           onChange={() => handleCategoryChange('Folyékony műtrágya')}
                         />
-                        <span>💧 {t('cat_MutragyaFolyekony')}</span>
+                        <span>{t('cat_MutragyaFolyekony')}</span>
                       </label>
                     </div>
                   </div>
