@@ -92,7 +92,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         m.name.toLowerCase().includes(q) ||
         m.id.toLowerCase().includes(q) ||
         m.category.toLowerCase().includes(q) ||
-        (m.location && m.location.toLowerCase().includes(q))
+        (m.location && m.location.toLowerCase().includes(q)) ||
+        (m.active_ingredients && m.active_ingredients.some(ing => ing.toLowerCase().includes(q)))
       )
     );
   }, [materials, searchQuery]);
@@ -399,6 +400,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         image_url: updatedData.image_url,
         expiration_date: updatedData.expiration_date,
         is_gep: updatedData.is_gep,
+        active_ingredients: updatedData.active_ingredients,
       };
 
       // Instant optimistic UI update
@@ -415,6 +417,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         image_url: updatedData.image_url,
         expiration_date: updatedData.expiration_date,
         is_gep: updatedData.is_gep,
+        active_ingredients: updatedData.active_ingredients,
       });
 
       // Log a transaction if quantity was modified directly during editing
@@ -492,6 +495,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     setUsers(prevUsers =>
       prevUsers.map(u => (u.id === userId ? { ...u, ...updates } : u))
     );
+    if (userId === user.id && onUserUpdate) {
+      onUserUpdate(updates);
+    }
     try {
       await dbService.updateUserProfile(userId, updates);
     } catch (err: unknown) {

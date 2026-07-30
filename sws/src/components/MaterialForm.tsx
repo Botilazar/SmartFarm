@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Camera, Upload, AlertCircle, X, Sprout } from 'lucide-react';
 import type { Material } from '../db/dbService';
 import { useTranslation } from '../context/LanguageContext';
+import { ActiveIngredientsSelect } from './ActiveIngredientsSelect';
 
 interface MaterialFormProps {
   onSave: (material: Omit<Material, 'qr_code_url'>) => Promise<void>;
@@ -22,6 +23,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
   const [imageUrl, setImageUrl] = useState(initialData ? initialData.image_url : '');
   const [expirationDate, setExpirationDate] = useState(initialData ? (initialData.expiration_date || '') : '');
   const [isGep, setIsGep] = useState<string>(initialData && initialData.is_gep !== undefined ? (initialData.is_gep ? 'true' : 'false') : '');
+  const [activeIngredients, setActiveIngredients] = useState<string[]>(initialData?.active_ingredients || []);
 
   // Camera capture states
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -189,6 +191,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
         image_url: imageUrl,
         expiration_date: expirationDate || undefined,
         is_gep: isGep === 'true',
+        active_ingredients: category === 'Permetszerek' ? activeIngredients : undefined,
       });
     } catch (err: unknown) {
       setErrorMessage((err as Error)?.message || t('mfErrorSave'));
@@ -263,6 +266,16 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
                 />
               </div>
             </div>
+
+            {category === 'Permetszerek' && (
+              <div className="form-group" style={{ marginBottom: '16px' }}>
+                <label className="form-label">Hatóanyagok</label>
+                <ActiveIngredientsSelect
+                  selectedIngredients={activeIngredients}
+                  onChange={setActiveIngredients}
+                />
+              </div>
+            )}
 
             <div className="form-group">
               <label className="form-label" htmlFor="mName">{t('mfLabelName')}</label>
