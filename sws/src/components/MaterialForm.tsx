@@ -17,10 +17,17 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
   const [quantity, setQuantity] = useState<number>(initialData ? initialData.quantity : 0);
   const [maxQuantity, setMaxQuantity] = useState<number>(initialData ? initialData.max_quantity : 10);
   const [unit, setUnit] = useState(initialData ? initialData.unit : 'db');
-  const [category, setCategory] = useState(initialData ? initialData.category : 'Permetszerek');
+  const getInitialCategory = (cat?: string) => {
+    if (!cat) return 'Permetszerek';
+    if (cat === 'Műtrágyák') return 'Szilárd műtrágya';
+    return cat;
+  };
+
+  const [category, setCategory] = useState(getInitialCategory(initialData?.category));
   const [location, setLocation] = useState(initialData ? initialData.location : 'A1-01-01');
   const [imageUrl, setImageUrl] = useState(initialData ? initialData.image_url : '');
   const [expirationDate, setExpirationDate] = useState(initialData ? (initialData.expiration_date || '') : '');
+  const [isGep, setIsGep] = useState<string>(initialData && initialData.is_gep !== undefined ? String(initialData.is_gep) : '');
 
   // Camera capture states
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -36,22 +43,22 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
 
   // Suggest next ID based on category selection
   const handleCategoryChange = React.useCallback((cat: string) => {
-    setCategory(cat);
+    const realCategory = cat === 'Műtrágyák' ? 'Szilárd műtrágya' : cat;
+    setCategory(realCategory);
 
     // Auto-suggest next ID based on category prefix
     if (!initialData) {
-      const prefix = cat === 'Herbicit' ? 'HRB'
-        : cat === 'Insecticit' ? 'INS'
-          : cat === 'Fungicit' ? 'FNG'
-            : cat === 'Biostimulátor' ? 'BIO'
-              : cat === 'Szilárd műtrágya' ? 'MTS'
-                : cat === 'Folyékony műtrágya' ? 'MTF'
-                  : cat === 'Műtrágyák' ? 'MUT'
-                    : cat === 'Permetszerek' ? 'PRM'
-                      : cat === 'Vetőmagok' ? 'VET'
-                        : cat === 'Tápok' ? 'TAP'
-                          : cat === 'Adalékanyagok' ? 'ADL'
-                            : 'EGY';
+      const prefix = realCategory === 'Herbicit' ? 'HRB'
+        : realCategory === 'Insecticit' ? 'INS'
+          : realCategory === 'Fungicit' ? 'FNG'
+            : realCategory === 'Biostimulátor' ? 'BIO'
+              : realCategory === 'Szilárd műtrágya' ? 'MTS'
+                : realCategory === 'Folyékony műtrágya' ? 'MTF'
+                  : realCategory === 'Permetszerek' ? 'PRM'
+                    : realCategory === 'Vetőmagok' ? 'VET'
+                      : realCategory === 'Tápok' ? 'TAP'
+                        : realCategory === 'Adalékanyagok' ? 'ADL'
+                          : 'EGY';
 
       // Find highest index in existing IDs for this prefix
       const pattern = new RegExp(`^${prefix}-(\\d+)$`);
@@ -69,9 +76,9 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
       setId(`${prefix}-${nextNum}`);
 
       // Auto-adjust unit defaults
-      if (cat === 'Herbicit' || cat === 'Insecticit' || cat === 'Fungicit' || cat === 'Biostimulátor' || cat === 'Folyékony műtrágya' || cat === 'Permetszerek' || cat === 'Adalékanyagok') {
+      if (realCategory === 'Herbicit' || realCategory === 'Insecticit' || realCategory === 'Fungicit' || realCategory === 'Biostimulátor' || realCategory === 'Folyékony műtrágya' || realCategory === 'Permetszerek' || realCategory === 'Adalékanyagok') {
         setUnit('l');
-      } else if (cat === 'Szilárd műtrágya' || cat === 'Műtrágyák' || cat === 'Tápok' || cat === 'Vetőmagok') {
+      } else if (realCategory === 'Szilárd műtrágya' || realCategory === 'Tápok' || realCategory === 'Vetőmagok') {
         setUnit('kg');
       } else {
         setUnit('db');
@@ -248,7 +255,6 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
                   <option value="Insecticit">{t('cat_Insecticit')}</option>
                   <option value="Fungicit">{t('cat_Fungicit')}</option>
                   <option value="Biostimulátor">{t('cat_Biostimulátor')}</option>
-                  <option value="Műtrágyák">{t('cat_Műtrágyák')}</option>
                   <option value="Szilárd műtrágya">{t('cat_Szilárd műtrágya')}</option>
                   <option value="Folyékony műtrágya">{t('cat_Folyékony műtrágya')}</option>
                   <option value="Permetszerek">{t('cat_Permetszerek')}</option>
@@ -257,34 +263,6 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
                   <option value="Adalékanyagok">{t('cat_Adalékanyagok')}</option>
                   <option value="Egyéb">{t('cat_Egyéb')}</option>
                 </select>
-
-                {(category === 'Műtrágyák' || category === 'Szilárd műtrágya' || category === 'Folyékony műtrágya') && (
-                  <div style={{ marginTop: '10px', padding: '10px 12px', backgroundColor: 'var(--bg-app)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--primary)', marginBottom: '6px' }}>
-                      {t('cat_MutragyaTipus')}
-                    </label>
-                    <div style={{ display: 'flex', gap: '16px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: (category === 'Szilárd műtrágya' || category === 'Műtrágyák') ? 600 : 400 }}>
-                        <input
-                          type="radio"
-                          name="mutragyaFormType"
-                          checked={category === 'Szilárd műtrágya' || category === 'Műtrágyák'}
-                          onChange={() => handleCategoryChange('Szilárd műtrágya')}
-                        />
-                        <span>{t('cat_MutragyaSzilard')}</span>
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: category === 'Folyékony műtrágya' ? 600 : 400 }}>
-                        <input
-                          type="radio"
-                          name="mutragyaFormType"
-                          checked={category === 'Folyékony műtrágya'}
-                          onChange={() => handleCategoryChange('Folyékony műtrágya')}
-                        />
-                        <span>{t('cat_MutragyaFolyekony')}</span>
-                      </label>
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="form-group">

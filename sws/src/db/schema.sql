@@ -17,6 +17,34 @@ CREATE TABLE IF NOT EXISTS public.materials (
 ALTER TABLE public.materials ADD COLUMN IF NOT EXISTS is_inactive BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.materials ADD COLUMN IF NOT EXISTS is_gep BOOLEAN;
 
+-- Migration helper: Drop old materials_category_check constraint if present
+ALTER TABLE public.materials DROP CONSTRAINT IF EXISTS materials_category_check;
+
+-- Migration helper: Update legacy 'Műtrágyák' category to 'Szilárd műtrágya' or 'Folyékony műtrágya'
+UPDATE public.materials
+SET category = CASE
+  WHEN id LIKE 'MTF-%' OR unit = 'l' THEN 'Folyékony műtrágya'
+  ELSE 'Szilárd műtrágya'
+END
+WHERE category = 'Műtrágyák';
+
+-- Migration helper: Re-add updated materials_category_check constraint with new categories
+ALTER TABLE public.materials ADD CONSTRAINT materials_category_check CHECK (
+  category IN (
+    'Herbicit',
+    'Insecticit',
+    'Fungicit',
+    'Biostimulátor',
+    'Szilárd műtrágya',
+    'Folyékony műtrágya',
+    'Permetszerek',
+    'Vetőmagok',
+    'Tápok',
+    'Adalékanyagok',
+    'Egyéb'
+  )
+);
+
 -- Create transactions table
 CREATE TABLE IF NOT EXISTS public.transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -164,8 +164,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     const barSpacing = chartWidth / monthsList.length;
     
     const getCategoryUnit = (cat: string) => {
-      if (cat === 'Permetszerek' || cat === 'Adalékanyagok') return 'l';
-      if (cat === 'Műtrágyák' || cat === 'Tápok' || cat === 'Vetőmagok') return 'kg';
+      if (cat === 'Permetszerek' || cat === 'Adalékanyagok' || cat === 'Folyékony műtrágya') return 'l';
+      if (cat === 'Műtrágyák' || cat === 'Szilárd műtrágya' || cat === 'Tápok' || cat === 'Vetőmagok') return 'kg';
       return 'db';
     };
     

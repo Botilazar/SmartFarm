@@ -144,6 +144,12 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
           ? (m.category === 'Műtrágyák' || m.category === 'Szilárd műtrágya' || m.category === 'Folyékony műtrágya')
           : m.category === selectedCategory;
 
+      const matchesGep = selectedGepFilter === 'All'
+        ? true
+        : selectedGepFilter === 'Igen'
+          ? !!m.is_gep
+          : !m.is_gep;
+
       const isArchived = !!m.is_inactive;
       const matchesTab = user.role === 'admin'
         ? (activeTab === 'inactive' ? isArchived : !isArchived)
@@ -537,6 +543,20 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
               </div>
             )}
           </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', height: '34px' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>GEP:</span>
+          <select
+            className="form-select"
+            style={{ width: '100px', padding: '6px 10px', fontSize: '12px' }}
+            value={selectedGepFilter}
+            onChange={(e) => setSelectedGepFilter(e.target.value as 'All' | 'Igen' | 'Nem')}
+          >
+            <option value="All">Mind</option>
+            <option value="Igen">Igen</option>
+            <option value="Nem">Nem</option>
+          </select>
         </div>
       </div>
 

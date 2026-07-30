@@ -80,16 +80,17 @@ const generateSeedMaterials = async (): Promise<Material[]> => {
   // 1. Defined items from screenshot
   const specificItems = [
     { id: 'PRM-001', name: 'Permetszer A', quantity: 3, max_quantity: 50, unit: 'db', category: 'Permetszerek', location: 'A1-01-03', expiration_date: '2026-06-15', is_inactive: false, is_gep: false },
-    { id: 'MUT-004', name: 'Műtrágya B', quantity: 12, max_quantity: 25, unit: 'kg', category: 'Műtrágyák', location: 'B2-04-02', expiration_date: '2026-07-28', is_inactive: false, is_gep: false },
+    { id: 'MTS-004', name: 'Műtrágya B', quantity: 12, max_quantity: 25, unit: 'kg', category: 'Szilárd műtrágya', location: 'B2-04-02', expiration_date: '2026-07-28', is_inactive: false, is_gep: false },
     { id: 'VET-011', name: 'Vetőmag C', quantity: 5, max_quantity: 80, unit: 'kg', category: 'Vetőmagok', location: 'C1-02-01', expiration_date: '2027-03-01', is_inactive: false, is_gep: false },
     { id: 'PRM-007', name: 'Gombaölő szer D', quantity: 18, max_quantity: 35, unit: 'kg', category: 'Permetszerek', location: 'A1-03-05', is_inactive: false, is_gep: false },
-    { id: 'MUT-002', name: 'Műtrágya E', quantity: 16, max_quantity: 33, unit: 'kg', category: 'Műtrágyák', location: 'B1-01-02', is_inactive: false, is_gep: false },
+    { id: 'MTS-002', name: 'Műtrágya E', quantity: 16, max_quantity: 33, unit: 'kg', category: 'Szilárd műtrágya', location: 'B1-01-02', is_inactive: false, is_gep: false },
   ];
 
   // Map of category target counts
   const categoryTargets: { [key: string]: number } = {
     'Permetszerek': 38,
-    'Műtrágyák': 32,
+    'Szilárd műtrágya': 20,
+    'Folyékony műtrágya': 12,
     'Vetőmagok': 20,
     'Tápok': 18,
     'Adalékanyagok': 12,
@@ -99,7 +100,8 @@ const generateSeedMaterials = async (): Promise<Material[]> => {
   // Keep track of current category counts
   const categoryCounts: { [key: string]: number } = {
     'Permetszerek': 0,
-    'Műtrágyák': 0,
+    'Szilárd műtrágya': 0,
+    'Folyékony műtrágya': 0,
     'Vetőmagok': 0,
     'Tápok': 0,
     'Adalékanyagok': 0,
@@ -114,10 +116,10 @@ const generateSeedMaterials = async (): Promise<Material[]> => {
   // Target status counts (we need 82 Green, 31 Yellow, 15 Red)
   // Specific items:
   // - PRM-001: Red (3/50 = 6%)
-  // - MUT-004: Yellow (12/25 = 48%)
+  // - MTS-004: Yellow (12/25 = 48%)
   // - VET-011: Red (5/80 = 6.25%)
   // - PRM-007: Yellow (18/35 = 51.4%)
-  // - MUT-002: Yellow (16/33 = 48.5%)
+  // - MTS-002: Yellow (16/33 = 48.5%)
   // Current count: 2 Red, 3 Yellow, 0 Green.
   // We need to generate:
   // - Green: 82 items
@@ -153,7 +155,6 @@ const generateSeedMaterials = async (): Promise<Material[]> => {
                      : cat === 'Biostimulátor' ? 'BIO'
                      : cat === 'Szilárd műtrágya' ? 'MTS'
                      : cat === 'Folyékony műtrágya' ? 'MTF'
-                     : cat === 'Műtrágyák' ? 'MUT'
                      : cat === 'Permetszerek' ? 'PRM'
                      : cat === 'Vetőmagok' ? 'VET'
                      : cat === 'Tápok' ? 'TAP'
@@ -254,7 +255,25 @@ let isDbInitialized = false;
 const getLocalMaterials = (): Material[] => {
   if (memoryMaterials) return memoryMaterials;
   const data = localStorage.getItem(STORAGE_KEYS.MATERIALS);
-  memoryMaterials = data ? JSON.parse(data) : [];
+  if (data) {
+    const parsed: Material[] = JSON.parse(data);
+    let updated = false;
+    memoryMaterials = parsed.map(m => {
+      if (m.category === 'Műtrágyák') {
+        updated = true;
+        return {
+          ...m,
+          category: (m.id.startsWith('MTF-') || m.unit === 'l') ? 'Folyékony műtrágya' : 'Szilárd műtrágya'
+        };
+      }
+      return m;
+    });
+    if (updated) {
+      localStorage.setItem(STORAGE_KEYS.MATERIALS, JSON.stringify(memoryMaterials));
+    }
+  } else {
+    memoryMaterials = [];
+  }
   return memoryMaterials!;
 };
 
@@ -309,7 +328,7 @@ export const seedMockDataIfEmpty = async () => {
     const seedTxs: Transaction[] = [
       {
         id: '1',
-        material_id: 'MUT-004',
+        material_id: 'MTS-004',
         material_name: 'Műtrágya B',
         type: 'intake',
         quantity: 50,
@@ -339,7 +358,7 @@ export const seedMockDataIfEmpty = async () => {
       },
       {
         id: '4',
-        material_id: 'MUT-002',
+        material_id: 'MTS-002',
         material_name: 'Műtrágya E',
         type: 'checkout',
         quantity: -10,
@@ -360,7 +379,7 @@ export const seedMockDataIfEmpty = async () => {
       // Historical checkouts for trend graphing:
       {
         id: 'h1',
-        material_id: 'MUT-004',
+        material_id: 'MTS-004',
         material_name: 'Műtrágya B',
         type: 'checkout',
         quantity: -15,
@@ -390,7 +409,7 @@ export const seedMockDataIfEmpty = async () => {
       },
       {
         id: 'h4',
-        material_id: 'MUT-004',
+        material_id: 'MTS-004',
         material_name: 'Műtrágya B',
         type: 'checkout',
         quantity: -25,
@@ -410,7 +429,7 @@ export const seedMockDataIfEmpty = async () => {
       },
       {
         id: 'h6',
-        material_id: 'MUT-002',
+        material_id: 'MTS-002',
         material_name: 'Műtrágya E',
         type: 'checkout',
         quantity: -12,
@@ -420,7 +439,7 @@ export const seedMockDataIfEmpty = async () => {
       },
       {
         id: 'h7',
-        material_id: 'MUT-004',
+        material_id: 'MTS-004',
         material_name: 'Műtrágya B',
         type: 'checkout',
         quantity: -20,
