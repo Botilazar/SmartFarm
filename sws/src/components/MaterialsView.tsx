@@ -390,7 +390,12 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
               const pct = Math.round((m.quantity / m.max_quantity) * 100);
               
               return (
-                <tr key={m.id}>
+                <tr 
+                  key={m.id}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => onAddTransactionClick(m)}
+                  title={`${t('matIntake')} / ${t('matCheckout')}`}
+                >
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       {m.image_url ? (
@@ -415,7 +420,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span className={`qty-val ${status}`}>{m.quantity}</span>
-                      <div className="progress-bar-container">
+                      <div className="progress-bar-container" style={{ cursor: 'pointer' }}>
                         <div 
                           className={`progress-bar-fill ${status}`} 
                           style={{ width: `${Math.min(100, pct)}%` }}
@@ -445,7 +450,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                     )}
                   </td>
                   <td>{m.unit}</td>
-                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'nowrap' }}>
                       <button
                         type="button"
@@ -458,7 +463,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                       <button
                         type="button"
                         className="btn-secondary"
-                        style={{ padding: '6px', color: 'var(--text-secondary)', width: 'auto' }}
+                        style={{ padding: '6px', color: 'var(--primary)', width: 'auto' }}
                         title={t('matPrint')}
                         onClick={() => onPrintQrClick(m)}
                       >

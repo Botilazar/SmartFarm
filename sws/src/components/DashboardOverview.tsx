@@ -1002,7 +1002,12 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                     const status = getStockStatus(m.quantity, m.max_quantity);
                     const pct = Math.round((m.quantity / m.max_quantity) * 100);
                     return (
-                      <tr key={m.id}>
+                      <tr 
+                        key={m.id}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => onMobileStockCardClick && onMobileStockCardClick(m.id)}
+                        title={`${t('matIntake')} / ${t('matCheckout')}`}
+                      >
                         <td>
                           <div className="material-status-cell">
                             <div className={`status-dot ${status}`} />
