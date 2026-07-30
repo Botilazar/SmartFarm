@@ -467,7 +467,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                         title={t('matPrint')}
                         onClick={() => onPrintQrClick(m)}
                       >
-                        <QrCode size={16} />
+                        <QrCode size={16} style={{ color: 'var(--primary)' }} />
                       </button>
                       {user.role === 'admin' && (
                         <>

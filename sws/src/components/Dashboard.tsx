@@ -693,7 +693,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 }}
                 onClick={() => setShowScanner(true)}
               >
-                <QrCode size={16} style={{ color: 'var(--primary)' }} />
+                <QrCode size={16} style={{ color: 'white' }} />
                 <span>{t('qrScanBtn')}</span>
               </button>
 
@@ -876,7 +876,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
             </div>
             <div className="mobile-header-icons">
               <button className="mobile-badge-btn" onClick={() => setShowScanner(true)}>
-                <QrCode size={22} style={{ color: 'var(--primary)' }} />
+                <QrCode size={22} style={{ color: 'white' }} />
               </button>
               <div className="notification-bell-container" ref={mobileNotificationsRef} style={{ position: 'relative' }}>
                 <button
