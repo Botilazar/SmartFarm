@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Package, MapPin, QrCode, Trash2, Pencil, ChevronUp, ChevronDown, ArrowUpDown, Calendar, Download } from 'lucide-react';
+import { Package, MapPin, QrCode, Trash2, Pencil, Archive, ArchiveRestore, ChevronUp, ChevronDown, ArrowUpDown, Calendar, Download } from 'lucide-react';
 import { getStockStatus } from '../db/dbService';
 import type { Material } from '../db/dbService';
 import { useTranslation } from '../context/LanguageContext';
@@ -15,6 +15,8 @@ interface MaterialsViewProps {
   onPrintQrClick: (m: Material) => void;
   onDeleteClick: (m: Material) => void;
   onEditClick: (m: Material) => void;
+  onDeactivateClick: (m: Material) => void;
+  onRestoreClick: (m: Material) => void;
   isMobile?: boolean;
   onMobileScanClick?: (materialId: string) => void;
 }
@@ -29,10 +31,13 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
   onPrintQrClick,
   onDeleteClick,
   onEditClick,
+  onDeactivateClick,
+  onRestoreClick,
   isMobile = false,
   onMobileScanClick
 }) => {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState<'active' | 'inactive'>('active');
   const [sortField, setSortField] = useState<'name' | 'category' | 'location' | 'stock' | 'unit' | 'expiration' | null>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -81,13 +86,13 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
     today.setHours(0, 0, 0, 0);
     const expiration = new Date(expDate);
     expiration.setHours(0, 0, 0, 0);
-    
+
     if (expiration < today) return 'expired';
-    
+
     // 30 days in milliseconds
     const diffTime = expiration.getTime() - today.getTime();
     if (diffTime <= 30 * 24 * 60 * 60 * 1000) return 'expiring-soon';
-    
+
     return 'ok';
   };
 
@@ -113,13 +118,19 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
 
   const filteredMaterials = useMemo(() => {
     return materials.filter(m => {
-      const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            m.location.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.location.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === 'All' || m.category === selectedCategory;
-      return matchesSearch && matchesCategory;
+
+      const isArchived = !!m.is_inactive;
+      const matchesTab = user.role === 'admin'
+        ? (activeTab === 'inactive' ? isArchived : !isArchived)
+        : !isArchived;
+
+      return matchesSearch && matchesCategory && matchesTab;
     });
-  }, [materials, searchQuery, selectedCategory]);
+  }, [materials, searchQuery, selectedCategory, activeTab, user.role]);
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const sortedMaterials = useMemo(() => {
@@ -201,14 +212,51 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
           </div>
         </div>
 
+        {user.role === 'admin' && (
+          <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>
+            <button
+              type="button"
+              style={{
+                padding: '6px 12px',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: activeTab === 'active' ? 'var(--primary)' : 'var(--text-secondary)',
+                border: 'none',
+                borderBottom: activeTab === 'active' ? '2.5px solid var(--primary)' : '2.5px solid transparent',
+                backgroundColor: 'transparent',
+                cursor: 'pointer',
+              }}
+              onClick={() => setActiveTab('active')}
+            >
+              {t('matActiveTab') || 'Aktív készlet'}
+            </button>
+            <button
+              type="button"
+              style={{
+                padding: '6px 12px',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: activeTab === 'inactive' ? 'var(--primary)' : 'var(--text-secondary)',
+                border: 'none',
+                borderBottom: activeTab === 'inactive' ? '2.5px solid var(--primary)' : '2.5px solid transparent',
+                backgroundColor: 'transparent',
+                cursor: 'pointer',
+              }}
+              onClick={() => setActiveTab('inactive')}
+            >
+              {t('matInactiveTab') || 'Inaktív'}
+            </button>
+          </div>
+        )}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {sortedMaterials.map((m) => {
             const status = getStockStatus(m.quantity, m.max_quantity);
             const pct = Math.round((m.quantity / m.max_quantity) * 100);
-            
+
             return (
-              <div 
-                key={m.id} 
+              <div
+                key={m.id}
                 className="mobile-stock-card"
                 style={{ padding: '12px', position: 'relative' }}
                 onClick={() => onMobileScanClick && onMobileScanClick(m.id)}
@@ -225,12 +273,12 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                     <h4 style={{ fontSize: '13px' }}>{m.name}</h4>
                     <p style={{ fontSize: '10px' }}>{t('statId')}: {m.id} • {t('statLocation')}: {m.location}</p>
                     {m.expiration_date && (
-                      <p style={{ 
-                        fontSize: '9px', 
-                        color: checkExpirationStatus(m.expiration_date) === 'expired' 
-                          ? 'var(--danger)' 
-                          : checkExpirationStatus(m.expiration_date) === 'expiring-soon' 
-                            ? 'var(--warning)' 
+                      <p style={{
+                        fontSize: '9px',
+                        color: checkExpirationStatus(m.expiration_date) === 'expired'
+                          ? 'var(--danger)'
+                          : checkExpirationStatus(m.expiration_date) === 'expiring-soon'
+                            ? 'var(--warning)'
                             : 'var(--text-secondary)',
                         fontWeight: checkExpirationStatus(m.expiration_date) !== 'ok' ? 700 : 500,
                         display: 'flex',
@@ -244,38 +292,76 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                     )}
                   </div>
                 </div>
-                <div className="mobile-stock-card-right" style={{ marginRight: user.role === 'admin' ? '56px' : '0px' }}>
+                <div
+                  className="mobile-stock-card-right"
+                  style={{
+                    marginRight: user.role === 'admin'
+                      ? (activeTab === 'inactive' ? '64px' : '88px')
+                      : '0px'
+                  }}
+                >
                   <span className={`mobile-stock-qty ${status}`} style={{ fontSize: '13px' }}>{m.quantity} {m.unit}</span>
                   <span className="pct-badge" style={{ fontSize: '10px', margin: 0 }}>{pct}%</span>
                 </div>
                 {user.role === 'admin' && (
-                  <div 
+                  <div
                     style={{
                       position: 'absolute',
                       right: '12px',
                       top: '50%',
                       transform: 'translateY(-50%)',
                       display: 'flex',
-                      gap: '8px'
+                      gap: '6px'
                     }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <button
-                      type="button"
-                      style={{ background: 'none', border: 'none', color: 'var(--primary)', padding: '4px' }}
-                      title={t('matEdit')}
-                      onClick={() => onEditClick(m)}
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      style={{ background: 'none', border: 'none', color: 'var(--danger)', padding: '4px' }}
-                      title={t('matDelete')}
-                      onClick={() => onDeleteClick(m)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {activeTab === 'inactive' ? (
+                      <>
+                        <button
+                          type="button"
+                          style={{ background: 'none', border: 'none', color: 'var(--primary)', padding: '4px' }}
+                          title={t('matRestore') || 'Visszaállítás'}
+                          onClick={() => onRestoreClick(m)}
+                        >
+                          <ArchiveRestore size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          style={{ background: 'none', border: 'none', color: 'var(--danger)', padding: '4px' }}
+                          title={t('matDelete')}
+                          onClick={() => onDeleteClick(m)}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          style={{ background: 'none', border: 'none', color: 'var(--primary)', padding: '4px' }}
+                          title={t('matEdit')}
+                          onClick={() => onEditClick(m)}
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          style={{ background: 'none', border: 'none', color: 'var(--warning)', padding: '4px' }}
+                          title={t('matDeactivate') || 'Inaktiválás'}
+                          onClick={() => onDeactivateClick(m)}
+                        >
+                          <Archive size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          style={{ background: 'none', border: 'none', color: 'var(--danger)', padding: '4px' }}
+                          title={t('matDelete')}
+                          onClick={() => onDeleteClick(m)}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -301,7 +387,48 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
           <p className="page-subtitle" style={{ margin: 0 }}>{t('matSubtitle')}</p>
         </div>
       </div>
-      
+
+      {user.role === 'admin' && (
+        <div style={{ display: 'flex', gap: '16px', borderBottom: '1px solid var(--border)', marginBottom: '16px' }}>
+          <button
+            type="button"
+            style={{
+              padding: '10px 16px',
+              fontSize: '14px',
+              fontWeight: 600,
+              color: activeTab === 'active' ? 'var(--primary)' : 'var(--text-secondary)',
+              border: 'none',
+              borderBottom: activeTab === 'active' ? '3px solid var(--primary)' : '3px solid transparent',
+              backgroundColor: 'transparent',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              marginBottom: '-1px'
+            }}
+            onClick={() => setActiveTab('active')}
+          >
+            {t('matActiveTab') || 'Aktív készlet'}
+          </button>
+          <button
+            type="button"
+            style={{
+              padding: '10px 16px',
+              fontSize: '14px',
+              fontWeight: 600,
+              color: activeTab === 'inactive' ? 'var(--primary)' : 'var(--text-secondary)',
+              border: 'none',
+              borderBottom: activeTab === 'inactive' ? '3px solid var(--primary)' : '3px solid transparent',
+              backgroundColor: 'transparent',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              marginBottom: '-1px'
+            }}
+            onClick={() => setActiveTab('inactive')}
+          >
+            {t('matInactiveTab') || 'Inaktív archívum'}
+          </button>
+        </div>
+      )}
+
       {/* Filters & Export Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px', width: '100%' }}>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -329,7 +456,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
             ))}
           </div>
         </div>
-        
+
         <button
           type="button"
           className="btn-secondary"
@@ -388,9 +515,9 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
             {sortedMaterials.map((m) => {
               const status = getStockStatus(m.quantity, m.max_quantity);
               const pct = Math.round((m.quantity / m.max_quantity) * 100);
-              
+
               return (
-                <tr 
+                <tr
                   key={m.id}
                   style={{ cursor: 'pointer' }}
                   onClick={() => onAddTransactionClick(m)}
@@ -421,8 +548,8 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span className={`qty-val ${status}`}>{m.quantity}</span>
                       <div className="progress-bar-container" style={{ cursor: 'pointer' }}>
-                        <div 
-                          className={`progress-bar-fill ${status}`} 
+                        <div
+                          className={`progress-bar-fill ${status}`}
                           style={{ width: `${Math.min(100, pct)}%` }}
                         />
                       </div>
@@ -431,12 +558,12 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                   </td>
                   <td>
                     {m.expiration_date ? (
-                      <span 
-                        style={{ 
-                          color: checkExpirationStatus(m.expiration_date) === 'expired' 
-                            ? 'var(--danger)' 
-                            : checkExpirationStatus(m.expiration_date) === 'expiring-soon' 
-                              ? 'var(--warning)' 
+                      <span
+                        style={{
+                          color: checkExpirationStatus(m.expiration_date) === 'expired'
+                            ? 'var(--danger)'
+                            : checkExpirationStatus(m.expiration_date) === 'expiring-soon'
+                              ? 'var(--warning)'
                               : 'var(--text-primary)',
                           fontWeight: checkExpirationStatus(m.expiration_date) !== 'ok' ? 600 : 'normal'
                         }}
@@ -452,43 +579,79 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                   <td>{m.unit}</td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'nowrap' }}>
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        style={{ padding: '6px 10px', fontSize: '11px', width: 'auto' }}
-                        onClick={() => onAddTransactionClick(m)}
-                      >
-                        {t('matIntake')} / {t('matCheckout')}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        style={{ padding: '6px', color: 'var(--primary)', width: 'auto' }}
-                        title={t('matPrint')}
-                        onClick={() => onPrintQrClick(m)}
-                      >
-                        <QrCode size={16} style={{ color: 'var(--primary)' }} />
-                      </button>
-                      {user.role === 'admin' && (
+                      {activeTab === 'inactive' ? (
+                        user.role === 'admin' && (
+                          <>
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              style={{ padding: '6px', color: 'var(--primary)', width: 'auto' }}
+                              title={t('matRestore') || 'Visszaállítás'}
+                              onClick={() => onRestoreClick(m)}
+                            >
+                              <ArchiveRestore size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              style={{ padding: '6px', color: 'var(--danger)', width: 'auto' }}
+                              title={t('matDelete')}
+                              onClick={() => onDeleteClick(m)}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )
+                      ) : (
                         <>
                           <button
                             type="button"
                             className="btn-secondary"
-                            style={{ padding: '6px', color: 'var(--primary)', width: 'auto' }}
-                            title={t('matEdit')}
-                            onClick={() => onEditClick(m)}
+                            style={{ padding: '6px 10px', fontSize: '11px', width: 'auto' }}
+                            onClick={() => onAddTransactionClick(m)}
                           >
-                            <Pencil size={16} />
+                            {t('matIntake')} / {t('matCheckout')}
                           </button>
                           <button
                             type="button"
                             className="btn-secondary"
-                            style={{ padding: '6px', color: 'var(--danger)', width: 'auto' }}
-                            title={t('matDelete')}
-                            onClick={() => onDeleteClick(m)}
+                            style={{ padding: '6px', color: 'var(--text-secondary)', width: 'auto' }}
+                            title={t('matPrint')}
+                            onClick={() => onPrintQrClick(m)}
                           >
-                            <Trash2 size={16} />
+                            <QrCode size={16} />
                           </button>
+                          {user.role === 'admin' && (
+                            <>
+                              <button
+                                type="button"
+                                className="btn-secondary"
+                                style={{ padding: '6px', color: 'var(--primary)', width: 'auto' }}
+                                title={t('matEdit')}
+                                onClick={() => onEditClick(m)}
+                              >
+                                <Pencil size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-secondary"
+                                style={{ padding: '6px', color: 'var(--warning)', width: 'auto' }}
+                                title={t('matDeactivate') || 'Inaktiválás'}
+                                onClick={() => onDeactivateClick(m)}
+                              >
+                                <Archive size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-secondary"
+                                style={{ padding: '6px', color: 'var(--danger)', width: 'auto' }}
+                                title={t('matDelete')}
+                                onClick={() => onDeleteClick(m)}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </>
+                          )}
                         </>
                       )}
                     </div>
