@@ -33,6 +33,7 @@ export interface UserProfile {
   email: string;
   name: string;
   role: 'admin' | 'operator';
+  is_gep?: boolean;
 }
 
 export interface AllowedEmail {
@@ -671,22 +672,26 @@ export const dbService = {
       const savedUsers: UserProfile[] = getLocalUsers();
       // Combine with the default mock users, prioritizing local storage settings if any
       const defaultUsers: UserProfile[] = [
-        { id: '1', name: 'Kovács Gábor', email: 'kovacs.gabor@ceg.hu', role: 'admin' },
-        { id: '2', name: 'Kezelő János', email: 'kezelo.janos@ceg.hu', role: 'operator' },
+        { id: '1', name: 'Kovács Gábor', email: 'kovacs.gabor@ceg.hu', role: 'admin', is_gep: true },
+        { id: '2', name: 'Kezelő János', email: 'kezelo.janos@ceg.hu', role: 'operator', is_gep: false },
       ];
       
       const combined = defaultUsers.map(du => {
         const saved = savedUsers.find((su) => su.email === du.email);
-        return saved ? { ...du, role: saved.role } : du;
+        const role = saved ? saved.role : du.role;
+        const is_gep = saved && saved.is_gep !== undefined ? !!saved.is_gep : (role === 'admin');
+        return { ...du, role, is_gep };
       });
 
       savedUsers.forEach((u) => {
         if (!combined.some(c => c.email === u.email)) {
+          const role = u.role === 'admin' ? 'admin' : 'operator';
           combined.push({
             id: u.id || Math.random().toString(36).substring(2, 9),
             name: u.name,
             email: u.email,
-            role: u.role,
+            role,
+            is_gep: u.is_gep !== undefined ? !!u.is_gep : (role === 'admin'),
           });
         }
       });
@@ -699,27 +704,36 @@ export const dbService = {
       .order('name', { ascending: true });
 
     if (error) throw error;
-    return (data || []).map((u: { id: string; email: string; name?: string; role?: string }) => ({
-      id: u.id,
-      email: u.email,
-      name: u.name || 'Névtelen Felhasználó',
-      role: u.role === 'admin' ? 'admin' : 'operator',
-    }));
+    return (data || []).map((u: { id: string; email: string; name?: string; role?: string; is_gep?: boolean }) => {
+      const role = u.role === 'admin' ? 'admin' : 'operator';
+      return {
+        id: u.id,
+        email: u.email,
+        name: u.name || 'Névtelen Felhasználó',
+        role,
+        is_gep: u.is_gep !== undefined ? !!u.is_gep : (role === 'admin'),
+      };
+    });
   },
 
-  // UPDATE USER PROFILE ROLE
-  updateUserProfileRole: async (userId: string, newRole: 'admin' | 'operator'): Promise<void> => {
+  // UPDATE USER PROFILE
+  updateUserProfile: async (userId: string, updates: Partial<UserProfile>): Promise<void> => {
+    const finalUpdates = {
+      ...updates,
+      ...(updates.role === 'admin' ? { is_gep: true } : {})
+    };
+
     if (dbService.isMockMode()) {
       const savedUsers = getLocalUsers();
       
       const idx = savedUsers.findIndex((u) => u.id === userId || u.email === userId);
       if (idx !== -1) {
-        savedUsers[idx].role = newRole;
+        savedUsers[idx] = { ...savedUsers[idx], ...finalUpdates };
         saveLocalUsers(savedUsers);
       } else {
-        const defaultUsers = [
-          { id: '1', name: 'Kovács Gábor', email: 'kovacs.gabor@ceg.hu', role: 'admin' },
-          { id: '2', name: 'Kezelő János', email: 'kezelo.janos@ceg.hu', role: 'operator' },
+        const defaultUsers: UserProfile[] = [
+          { id: '1', name: 'Kovács Gábor', email: 'kovacs.gabor@ceg.hu', role: 'admin', is_gep: true },
+          { id: '2', name: 'Kezelő János', email: 'kezelo.janos@ceg.hu', role: 'operator', is_gep: false },
         ];
         const defaultUser = defaultUsers.find(u => u.id === userId || u.email === userId);
         if (defaultUser) {
@@ -728,7 +742,9 @@ export const dbService = {
             name: defaultUser.name,
             email: defaultUser.email,
             password: 'password123',
-            role: newRole
+            role: defaultUser.role,
+            is_gep: defaultUser.is_gep,
+            ...finalUpdates
           };
           savedUsers.push(newUser);
           saveLocalUsers(savedUsers);
@@ -739,10 +755,15 @@ export const dbService = {
 
     const { error } = await supabase!
       .from('profiles')
-      .update({ role: newRole })
+      .update(finalUpdates)
       .eq('id', userId);
 
     if (error) throw error;
+  },
+
+  // UPDATE USER PROFILE ROLE
+  updateUserProfileRole: async (userId: string, newRole: 'admin' | 'operator'): Promise<void> => {
+    return dbService.updateUserProfile(userId, { role: newRole });
   },
 
   // ALLOWED EMAILS WHITELIST METHODS

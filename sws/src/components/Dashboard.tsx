@@ -460,22 +460,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     setDeleteConfirmMaterial(material);
   };
 
-  // Handle User Role Update (Instant Optimistic Update)
-  const handleUpdateUserRole = async (userId: string, newRole: 'admin' | 'operator') => {
+  // Handle User Profile Update (Instant Optimistic Update)
+  const handleUpdateUserProfile = async (userId: string, updates: Partial<UserProfile>) => {
     const targetUser = users.find(u => u.id === userId);
-    if (targetUser && targetUser.email.toLowerCase() === user.email.toLowerCase()) {
+    if (updates.role !== undefined && targetUser && targetUser.email.toLowerCase() === user.email.toLowerCase()) {
       alert('Saját jogosultságodat biztonsági okokból nem módosíthatod!');
       return;
     }
     // Instant UI reaction (0ms)
     setUsers(prevUsers =>
-      prevUsers.map(u => (u.id === userId ? { ...u, role: newRole } : u))
+      prevUsers.map(u => (u.id === userId ? { ...u, ...updates } : u))
     );
     try {
-      await dbService.updateUserProfileRole(userId, newRole);
+      await dbService.updateUserProfile(userId, updates);
     } catch (err: unknown) {
       await loadData();
-      alert((err as Error)?.message || 'Hiba történt a jogosultság módosítása során.');
+      alert((err as Error)?.message || 'Hiba történt a módosítás során.');
     }
   };
 
@@ -856,7 +856,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               />
             )}
             {activeView === 'users' && user.role === 'admin' && (
-              <UsersView users={users} currentUserEmail={user.email} onUpdateUserRole={handleUpdateUserRole} />
+              <UsersView users={users} currentUserEmail={user.email} onUpdateUserProfile={handleUpdateUserProfile} />
             )}
             {activeView === 'allowed-emails' && user.role === 'admin' && (
               <AllowedEmailsView currentUserEmail={user.email} />
@@ -1153,7 +1153,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                   >
                     <ArrowLeft size={16} /> Vissza a profilhoz
                   </button>
-                  <UsersView users={users} currentUserEmail={user.email} onUpdateUserRole={handleUpdateUserRole} />
+                  <UsersView users={users} currentUserEmail={user.email} onUpdateUserProfile={handleUpdateUserProfile} />
                 </div>
               )}
 
