@@ -22,6 +22,8 @@ import { SettingsView } from './SettingsView';
 import { TransactionModal } from './TransactionModal';
 import { QrPrintModal } from './QrPrintModal';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
+import { DeactivateConfirmModal } from './DeactivateConfirmModal';
+import { RestoreConfirmModal } from './RestoreConfirmModal';
 
 interface DashboardProps {
   user: { id: string; name: string; email: string; role: 'admin' | 'operator'; avatar_url?: string };
@@ -42,6 +44,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [deleteConfirmMaterial, setDeleteConfirmMaterial] = useState<Material | null>(null);
+  const [deactivateConfirmMaterial, setDeactivateConfirmMaterial] = useState<Material | null>(null);
+  const [restoreConfirmMaterial, setRestoreConfirmMaterial] = useState<Material | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Interaction states
@@ -82,10 +86,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     const q = searchQuery.trim().toLowerCase();
     if (q.length < 3) return [];
     return materials.filter(m =>
-      m.name.toLowerCase().includes(q) ||
-      m.id.toLowerCase().includes(q) ||
-      m.category.toLowerCase().includes(q) ||
-      (m.location && m.location.toLowerCase().includes(q))
+      !m.is_inactive && (
+        m.name.toLowerCase().includes(q) ||
+        m.id.toLowerCase().includes(q) ||
+        m.category.toLowerCase().includes(q) ||
+        (m.location && m.location.toLowerCase().includes(q))
+      )
     );
   }, [materials, searchQuery]);
 
@@ -426,10 +432,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     setShowScanner(false);
     const mat = materials.find((m) => m.id === materialId);
     if (mat) {
-      setTransactionMaterial(mat);
+      if (mat.is_inactive) {
+        const errorMsg = (t('matErrorInactiveScan') || 'Figyelem! A(z) "{name}" ({id}) anyag jelenleg inaktív. Tranzakció nem végezhető vele!')
+          .replace('{name}', mat.name)
+          .replace('{id}', mat.id);
+        alert(errorMsg);
+      } else {
+        setTransactionMaterial(mat);
+      }
     } else {
       alert(`Anyag nem található azonosító alapján: ${materialId}`);
     }
+  };
+
+  // Handle Material Deactivation (Admin function)
+  const handleDeactivateMaterial = (material: Material) => {
+    setDeactivateConfirmMaterial(material);
+  };
+
+  // Handle Material Restoration (Admin function)
+  const handleRestoreMaterial = (material: Material) => {
+    setRestoreConfirmMaterial(material);
   };
 
   // Handle Material Deletion
@@ -801,7 +824,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
           <main className="page-content">
             {activeView === 'dashboard' && (
               <DashboardOverview
-                materials={materials}
+                materials={materials.filter(m => !m.is_inactive)}
                 transactions={transactions}
                 setActiveView={setActiveView}
                 loading={loading}
@@ -819,6 +842,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 onPrintQrClick={setViewingQrMaterial}
                 onDeleteClick={handleDeleteMaterial}
                 onEditClick={setEditingMaterial}
+                onDeactivateClick={handleDeactivateMaterial}
+                onRestoreClick={handleRestoreMaterial}
               />
             )}
             {activeView === 'movements' && (
@@ -826,7 +851,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
             )}
             {activeView === 'qr-codes' && (
               <QrCodesView
-                materials={materials}
+                materials={materials.filter(m => !m.is_inactive)}
                 onPrintQrClick={setViewingQrMaterial}
               />
             )}
@@ -986,7 +1011,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
 
           {mobileTab === 'home' && (
             <DashboardOverview
-              materials={materials}
+              materials={materials.filter(m => !m.is_inactive)}
               transactions={transactions}
               setActiveView={setActiveView}
               isMobile={true}
@@ -1010,6 +1035,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               onPrintQrClick={setViewingQrMaterial}
               onDeleteClick={handleDeleteMaterial}
               onEditClick={setEditingMaterial}
+              onDeactivateClick={handleDeactivateMaterial}
+              onRestoreClick={handleRestoreMaterial}
               isMobile={true}
               onMobileScanClick={handleScanSuccess}
             />
@@ -1114,7 +1141,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                   >
                     <ArrowLeft size={16} /> Vissza a profilhoz
                   </button>
-                  <QrCodesView materials={materials} onPrintQrClick={setViewingQrMaterial} />
+                  <QrCodesView materials={materials.filter(m => !m.is_inactive)} onPrintQrClick={setViewingQrMaterial} />
                 </div>
               )}
 
@@ -1263,6 +1290,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
           onClose={() => setDeleteConfirmMaterial(null)}
           onDeleteSuccess={async () => {
             setDeleteConfirmMaterial(null);
+            await loadData();
+          }}
+        />
+      )}
+
+      {/* 5.1. Modal: DEACTIVATE CONFIRMATION POPUP */}
+      {deactivateConfirmMaterial && (
+        <DeactivateConfirmModal
+          material={deactivateConfirmMaterial}
+          onClose={() => setDeactivateConfirmMaterial(null)}
+          onDeactivateSuccess={async () => {
+            setDeactivateConfirmMaterial(null);
+            await loadData();
+          }}
+        />
+      )}
+
+      {/* 5.2. Modal: RESTORE CONFIRMATION POPUP */}
+      {restoreConfirmMaterial && (
+        <RestoreConfirmModal
+          material={restoreConfirmMaterial}
+          onClose={() => setRestoreConfirmMaterial(null)}
+          onRestoreSuccess={async () => {
+            setRestoreConfirmMaterial(null);
             await loadData();
           }}
         />

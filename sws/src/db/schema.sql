@@ -9,8 +9,12 @@ CREATE TABLE IF NOT EXISTS public.materials (
   location TEXT,
   image_url TEXT,
   qr_code_url TEXT,
+  is_inactive BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration helper: Add is_inactive column if it doesn't exist yet
+ALTER TABLE public.materials ADD COLUMN IF NOT EXISTS is_inactive BOOLEAN DEFAULT FALSE;
 
 -- Create transactions table
 CREATE TABLE IF NOT EXISTS public.transactions (
