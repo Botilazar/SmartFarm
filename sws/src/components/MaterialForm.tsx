@@ -21,7 +21,6 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
   const [location, setLocation] = useState(initialData ? initialData.location : 'A1-01-01');
   const [imageUrl, setImageUrl] = useState(initialData ? initialData.image_url : '');
   const [expirationDate, setExpirationDate] = useState(initialData ? (initialData.expiration_date || '') : '');
-  const [isGep, setIsGep] = useState<string>(initialData && initialData.is_gep !== undefined ? (initialData.is_gep ? 'true' : 'false') : '');
 
   // Camera capture states
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -41,12 +40,18 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
 
     // Auto-suggest next ID based on category prefix
     if (!initialData) {
-      const prefix = cat === 'Permetszerek' ? 'PRM'
-        : cat === 'Műtrágyák' ? 'MUT'
-          : cat === 'Vetőmagok' ? 'VET'
-            : cat === 'Tápok' ? 'TAP'
-              : cat === 'Adalékanyagok' ? 'ADL'
-                : 'EGY';
+      const prefix = cat === 'Herbicit' ? 'HRB'
+        : cat === 'Insecticit' ? 'INS'
+          : cat === 'Fungicit' ? 'FNG'
+            : cat === 'Biostimulátor' ? 'BIO'
+              : cat === 'Szilárd műtrágya' ? 'MTS'
+                : cat === 'Folyékony műtrágya' ? 'MTF'
+                  : cat === 'Műtrágyák' ? 'MUT'
+                    : cat === 'Permetszerek' ? 'PRM'
+                      : cat === 'Vetőmagok' ? 'VET'
+                        : cat === 'Tápok' ? 'TAP'
+                          : cat === 'Adalékanyagok' ? 'ADL'
+                            : 'EGY';
 
       // Find highest index in existing IDs for this prefix
       const pattern = new RegExp(`^${prefix}-(\\d+)$`);
@@ -64,9 +69,9 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
       setId(`${prefix}-${nextNum}`);
 
       // Auto-adjust unit defaults
-      if (cat === 'Permetszerek' || cat === 'Adalékanyagok') {
+      if (cat === 'Herbicit' || cat === 'Insecticit' || cat === 'Fungicit' || cat === 'Biostimulátor' || cat === 'Folyékony műtrágya' || cat === 'Permetszerek' || cat === 'Adalékanyagok') {
         setUnit('l');
-      } else if (cat === 'Műtrágyák' || cat === 'Tápok' || cat === 'Vetőmagok') {
+      } else if (cat === 'Szilárd műtrágya' || cat === 'Műtrágyák' || cat === 'Tápok' || cat === 'Vetőmagok') {
         setUnit('kg');
       } else {
         setUnit('db');
@@ -239,13 +244,47 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
                   value={category}
                   onChange={(e) => handleCategoryChange(e.target.value)}
                 >
-                  <option value="Permetszerek">{t('cat_Permetszerek')}</option>
+                  <option value="Herbicit">{t('cat_Herbicit')}</option>
+                  <option value="Insecticit">{t('cat_Insecticit')}</option>
+                  <option value="Fungicit">{t('cat_Fungicit')}</option>
+                  <option value="Biostimulátor">{t('cat_Biostimulátor')}</option>
                   <option value="Műtrágyák">{t('cat_Műtrágyák')}</option>
+                  <option value="Szilárd műtrágya">{t('cat_Szilárd műtrágya')}</option>
+                  <option value="Folyékony műtrágya">{t('cat_Folyékony műtrágya')}</option>
+                  <option value="Permetszerek">{t('cat_Permetszerek')}</option>
                   <option value="Vetőmagok">{t('cat_Vetőmagok')}</option>
                   <option value="Tápok">{t('cat_Tápok')}</option>
                   <option value="Adalékanyagok">{t('cat_Adalékanyagok')}</option>
                   <option value="Egyéb">{t('cat_Egyéb')}</option>
                 </select>
+
+                {(category === 'Műtrágyák' || category === 'Szilárd műtrágya' || category === 'Folyékony műtrágya') && (
+                  <div style={{ marginTop: '10px', padding: '10px 12px', backgroundColor: 'var(--bg-app)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--primary)', marginBottom: '6px' }}>
+                      {t('cat_MutragyaTipus')}
+                    </label>
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: (category === 'Szilárd műtrágya' || category === 'Műtrágyák') ? 600 : 400 }}>
+                        <input
+                          type="radio"
+                          name="mutragyaFormType"
+                          checked={category === 'Szilárd műtrágya' || category === 'Műtrágyák'}
+                          onChange={() => handleCategoryChange('Szilárd műtrágya')}
+                        />
+                        <span>{t('cat_MutragyaSzilard')}</span>
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: category === 'Folyékony műtrágya' ? 600 : 400 }}>
+                        <input
+                          type="radio"
+                          name="mutragyaFormType"
+                          checked={category === 'Folyékony műtrágya'}
+                          onChange={() => handleCategoryChange('Folyékony műtrágya')}
+                        />
+                        <span>{t('cat_MutragyaFolyekony')}</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="form-group">

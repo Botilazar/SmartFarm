@@ -29,12 +29,18 @@ interface DashboardOverviewProps {
 }
 
 const categoryColors: { [key: string]: string } = {
-  'Permetszerek': '#006837', // primary green
-  'Műtrágyák': '#3b82f6',    // blue
-  'Vetőmagok': '#eab308',    // yellow
-  'Tápok': '#a855f7',        // purple
-  'Adalékanyagok': '#ec4899',// pink
-  'Egyéb': '#64748b'         // gray
+  'Herbicit': '#16a34a',
+  'Insecticit': '#dc2626',
+  'Fungicit': '#eab308',
+  'Biostimulátor': '#06b6d4',
+  'Műtrágyák': '#3b82f6',
+  'Szilárd műtrágya': '#2563eb',
+  'Folyékony műtrágya': '#0284c7',
+  'Permetszerek': '#006837',
+  'Vetőmagok': '#d97706',
+  'Tápok': '#a855f7',
+  'Adalékanyagok': '#ec4899',
+  'Egyéb': '#64748b'
 };
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ 
@@ -182,8 +188,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             value={trendCategory}
             onChange={(e) => setTrendCategory(e.target.value)}
           >
-            <option value="Permetszerek">{t('cat_Permetszerek')}</option>
+            <option value="Herbicit">{t('cat_Herbicit')}</option>
+            <option value="Insecticit">{t('cat_Insecticit')}</option>
+            <option value="Fungicit">{t('cat_Fungicit')}</option>
+            <option value="Biostimulátor">{t('cat_Biostimulátor')}</option>
             <option value="Műtrágyák">{t('cat_Műtrágyák')}</option>
+            <option value="Szilárd műtrágya">{t('cat_Szilárd műtrágya')}</option>
+            <option value="Folyékony műtrágya">{t('cat_Folyékony műtrágya')}</option>
+            <option value="Permetszerek">{t('cat_Permetszerek')}</option>
             <option value="Vetőmagok">{t('cat_Vetőmagok')}</option>
             <option value="Tápok">{t('cat_Tápok')}</option>
             <option value="Adalékanyagok">{t('cat_Adalékanyagok')}</option>

@@ -138,12 +138,11 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
       const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         m.location.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = selectedCategory === 'All' || m.category === selectedCategory;
-      const matchesGep = selectedGepFilter === 'All'
+      const matchesCategory = selectedCategory === 'All'
         ? true
-        : selectedGepFilter === 'Igen'
-          ? !!m.is_gep
-          : !m.is_gep;
+        : selectedCategory === 'Műtrágyák'
+          ? (m.category === 'Műtrágyák' || m.category === 'Szilárd műtrágya' || m.category === 'Folyékony műtrágya')
+          : m.category === selectedCategory;
 
       const isArchived = !!m.is_inactive;
       const matchesTab = user.role === 'admin'
@@ -225,8 +224,14 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
               <option value="All">{t('matAll')}</option>
+              <option value="Herbicit">{t('cat_Herbicit')}</option>
+              <option value="Insecticit">{t('cat_Insecticit')}</option>
+              <option value="Fungicit">{t('cat_Fungicit')}</option>
+              <option value="Biostimulátor">{t('cat_Biostimulátor')}</option>
+              <option value="Műtrágyák">{t('cat_Műtrágyák')} ({t('cat_MűtrágyaMind')})</option>
+              <option value="Szilárd műtrágya">  • {t('cat_Szilárd műtrágya')}</option>
+              <option value="Folyékony műtrágya">  • {t('cat_Folyékony műtrágya')}</option>
               <option value="Permetszerek">{t('cat_Permetszerek')}</option>
-              <option value="Műtrágyák">{t('cat_Műtrágyák')}</option>
               <option value="Vetőmagok">{t('cat_Vetőmagok')}</option>
               <option value="Tápok">{t('cat_Tápok')}</option>
               <option value="Adalékanyagok">{t('cat_Adalékanyagok')}</option>
@@ -417,6 +422,15 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
           <h2 className="details-card-title" style={{ margin: 0 }}>{t('matTitle')}</h2>
           <p className="page-subtitle" style={{ margin: 0 }}>{t('matSubtitle')}</p>
         </div>
+        <button
+          type="button"
+          className="btn-secondary"
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', width: 'auto', height: '36px', fontSize: '12px', flexShrink: 0 }}
+          onClick={handleExportCSV}
+        >
+          <Download size={14} />
+          <span>{t('btnExportCSV')}</span>
+        </button>
       </div>
 
       {user.role === 'admin' && (
@@ -462,71 +476,68 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
 
       {/* Filters & Export Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px', width: '100%' }}>
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-          {/* GEP Filter */}
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>GEP</span>
-            <div style={{ display: 'flex', gap: '6px', backgroundColor: 'var(--bg-app)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-              {(['All', 'Igen', 'Nem'] as const).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: selectedGepFilter === opt ? 600 : 500,
-                    border: 'none',
-                    backgroundColor: selectedGepFilter === opt ? 'var(--primary)' : 'transparent',
-                    color: selectedGepFilter === opt ? 'white' : 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onClick={() => setSelectedGepFilter(opt)}
-                >
-                  {opt === 'All' ? 'Mind' : opt}
-                </button>
-              ))}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500, height: '34px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>{t('matCategories')}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '6px', backgroundColor: 'var(--bg-app)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)', flexWrap: 'wrap' }}>
+              {['All', 'Herbicit', 'Insecticit', 'Fungicit', 'Biostimulátor', 'Műtrágyák', 'Permetszerek', 'Vetőmagok', 'Tápok', 'Adalékanyagok', 'Egyéb'].map((cat) => {
+                const isActive = selectedCategory === cat || (cat === 'Műtrágyák' && (selectedCategory === 'Szilárd műtrágya' || selectedCategory === 'Folyékony műtrágya'));
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: isActive ? 600 : 500,
+                      border: 'none',
+                      backgroundColor: isActive ? 'var(--primary)' : 'transparent',
+                      color: isActive ? 'white' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onClick={() => setSelectedCategory(cat)}
+                  >
+                    {cat === 'All' ? t('matAll') : t(`cat_${cat}`)}
+                  </button>
+                );
+              })}
             </div>
-          </div>
 
-          {/* Categories Filter */}
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>{t('matCategories')}</span>
-            <div style={{ display: 'flex', gap: '6px', backgroundColor: 'var(--bg-app)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-              {['All', 'Permetszerek', 'Műtrágyák', 'Vetőmagok', 'Tápok', 'Adalékanyagok', 'Egyéb'].map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: selectedCategory === cat ? 600 : 500,
-                    border: 'none',
-                    backgroundColor: selectedCategory === cat ? 'var(--primary)' : 'transparent',
-                    color: selectedCategory === cat ? 'white' : 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onClick={() => setSelectedCategory(cat)}
-                >
-                  {cat === 'All' ? t('matAll') : t(`cat_${cat}`)}
-                </button>
-              ))}
-            </div>
+            {(selectedCategory === 'Műtrágyák' || selectedCategory === 'Szilárd műtrágya' || selectedCategory === 'Folyékony műtrágya') && (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '6px 12px', backgroundColor: 'var(--bg-app)', borderRadius: '8px', border: '1px solid var(--border)', width: 'fit-content' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--primary)', marginRight: '4px', whiteSpace: 'nowrap' }}>
+                  {t('cat_MutragyaTipus')}
+                </span>
+                {[
+                  { key: 'Műtrágyák', label: t('cat_MűtrágyaMind') },
+                  { key: 'Szilárd műtrágya', label: `${t('cat_Szilárd műtrágya')}` },
+                  { key: 'Folyékony műtrágya', label: `${t('cat_Folyékony műtrágya')}` },
+                ].map(sub => (
+                  <button
+                    key={sub.key}
+                    type="button"
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: selectedCategory === sub.key ? 700 : 500,
+                      border: selectedCategory === sub.key ? '1px solid var(--primary)' : '1px solid var(--border)',
+                      backgroundColor: selectedCategory === sub.key ? 'var(--primary-light)' : 'var(--bg-card)',
+                      color: selectedCategory === sub.key ? 'var(--primary)' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                    onClick={() => setSelectedCategory(sub.key)}
+                  >
+                    {sub.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-
-        <button
-          type="button"
-          className="btn-secondary"
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', width: 'auto', height: '34px', fontSize: '12px' }}
-          onClick={handleExportCSV}
-        >
-          <Download size={14} />
-          <span>{t('btnExportCSV')}</span>
-        </button>
       </div>
 
       <div className="data-table-container">

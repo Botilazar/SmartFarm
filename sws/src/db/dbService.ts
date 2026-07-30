@@ -147,8 +147,14 @@ const generateSeedMaterials = async (): Promise<Material[]> => {
 
     while (count < target) {
       const index = count + 1;
-      const idPrefix = cat === 'Permetszerek' ? 'PRM'
+      const idPrefix = cat === 'Herbicit' ? 'HRB'
+                     : cat === 'Insecticit' ? 'INS'
+                     : cat === 'Fungicit' ? 'FNG'
+                     : cat === 'Biostimulátor' ? 'BIO'
+                     : cat === 'Szilárd műtrágya' ? 'MTS'
+                     : cat === 'Folyékony műtrágya' ? 'MTF'
                      : cat === 'Műtrágyák' ? 'MUT'
+                     : cat === 'Permetszerek' ? 'PRM'
                      : cat === 'Vetőmagok' ? 'VET'
                      : cat === 'Tápok' ? 'TAP'
                      : cat === 'Adalékanyagok' ? 'ADL'
@@ -176,8 +182,8 @@ const generateSeedMaterials = async (): Promise<Material[]> => {
         quantity = Math.floor(Math.random() * 35) + 3; // 3% to 38%
       }
 
-      const unit = cat === 'Permetszerek' || cat === 'Adalékanyagok' ? 'l'
-                 : cat === 'Műtrágyák' || cat === 'Tápok' || cat === 'Vetőmagok' ? 'kg'
+      const unit = (cat === 'Herbicit' || cat === 'Insecticit' || cat === 'Fungicit' || cat === 'Biostimulátor' || cat === 'Folyékony műtrágya' || cat === 'Permetszerek' || cat === 'Adalékanyagok') ? 'l'
+                 : (cat === 'Szilárd műtrágya' || cat === 'Műtrágyák' || cat === 'Tápok' || cat === 'Vetőmagok') ? 'kg'
                  : 'db';
 
       // Pick location
