@@ -369,7 +369,7 @@ export const QrCodesView: React.FC<QrCodesViewProps> = ({
                     <img src={m.qr_code_url} alt={m.name} style={{ width: '120px', height: '120px', objectFit: 'contain' }} />
                   ) : (
                     <div style={{ width: '120px', height: '120px', backgroundColor: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' }}>
-                      <QrCode size={40} style={{ color: 'var(--text-secondary)' }} />
+                      <QrCode size={40} style={{ color: 'var(--primary)' }} />
                     </div>
                   )}
                 </div>
