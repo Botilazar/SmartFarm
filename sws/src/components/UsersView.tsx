@@ -6,10 +6,10 @@ import { useTranslation } from '../context/LanguageContext';
 interface UsersViewProps {
   users: UserProfile[];
   currentUserEmail?: string;
-  onUpdateUserRole?: (userId: string, newRole: 'admin' | 'operator') => Promise<void>;
+  onUpdateUserProfile?: (userId: string, updates: Partial<UserProfile>) => Promise<void>;
 }
 
-export const UsersView: React.FC<UsersViewProps> = ({ users, currentUserEmail, onUpdateUserRole }) => {
+export const UsersView: React.FC<UsersViewProps> = ({ users, currentUserEmail, onUpdateUserProfile }) => {
   const { t } = useTranslation();
   const [sortField, setSortField] = useState<'name' | 'email' | 'role' | null>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -18,13 +18,15 @@ export const UsersView: React.FC<UsersViewProps> = ({ users, currentUserEmail, o
     const headers = [
       t('usrColName') || 'Név',
       t('usrColEmail') || 'Email',
-      t('usrColRole') || 'Szerepkör'
+      t('usrColRole') || 'Szerepkör',
+      'GEP'
     ];
 
     const rows = sortedUsers.map(u => [
       u.name,
       u.email,
-      u.role === 'admin' ? t('usrRoleAdmin') : t('usrRoleOperator')
+      u.role === 'admin' ? t('usrRoleAdmin') : t('usrRoleOperator'),
+      u.is_gep ? 'Igen' : 'Nem'
     ]);
 
     const csvContent = "\uFEFF" + [
@@ -124,6 +126,7 @@ export const UsersView: React.FC<UsersViewProps> = ({ users, currentUserEmail, o
                   {renderSortIcon('role')}
                 </div>
               </th>
+              <th>GEP</th>
               <th>{t('statStatus')}</th>
             </tr>
           </thead>
@@ -147,8 +150,8 @@ export const UsersView: React.FC<UsersViewProps> = ({ users, currentUserEmail, o
                       disabled={isSelf}
                       title={isSelf ? 'Saját jogosultságodat biztonsági okokból nem módosíthatod' : undefined}
                       onChange={(e) => {
-                        if (onUpdateUserRole && !isSelf) {
-                          onUpdateUserRole(u.id, e.target.value as 'admin' | 'operator');
+                        if (onUpdateUserProfile && !isSelf) {
+                          onUpdateUserProfile(u.id, { role: e.target.value as 'admin' | 'operator' });
                         }
                       }}
                       style={{
@@ -168,13 +171,32 @@ export const UsersView: React.FC<UsersViewProps> = ({ users, currentUserEmail, o
                       <option value="admin">{t('usrRoleAdmin')}</option>
                     </select>
                   </td>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={!!u.is_gep}
+                      disabled={false}
+                      onChange={(e) => {
+                        if (onUpdateUserProfile) {
+                          onUpdateUserProfile(u.id, { is_gep: e.target.checked });
+                        }
+                      }}
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        cursor: 'pointer',
+                        opacity: 1,
+                        accentColor: 'var(--primary)',
+                      }}
+                    />
+                  </td>
                   <td><span style={{ color: 'var(--success)', fontWeight: 600 }}>{t('usrStatusActive')}</span></td>
                 </tr>
               );
             })}
             {sortedUsers.length === 0 && (
               <tr>
-                <td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
+                <td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
                   {t('usrNoUsers')}
                 </td>
               </tr>

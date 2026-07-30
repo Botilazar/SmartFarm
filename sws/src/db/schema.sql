@@ -34,8 +34,12 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   email TEXT NOT NULL,
   name TEXT,
   role TEXT DEFAULT 'operator', -- 'admin' or 'operator'
+  is_gep BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration helper: Add is_gep column if it doesn't exist yet
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_gep BOOLEAN DEFAULT FALSE;
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
