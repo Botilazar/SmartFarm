@@ -137,7 +137,8 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
     return materials.filter(m => {
       const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        m.location.toLowerCase().includes(searchQuery.toLowerCase());
+        m.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (m.active_ingredients && m.active_ingredients.some(ing => ing.toLowerCase().includes(searchQuery.toLowerCase())));
       const matchesCategory = selectedCategory === 'All'
         ? true
         : selectedCategory === 'Műtrágyák'

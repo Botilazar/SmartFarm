@@ -15,6 +15,7 @@ export interface Material {
   created_at?: string;
   is_inactive?: boolean;
   is_gep?: boolean;
+  active_ingredients?: string[];
 }
 
 export interface Transaction {
@@ -472,6 +473,48 @@ export const seedMockDataIfEmpty = async () => {
   }
 };
 
+interface DbMaterial {
+  id: string;
+  name: string;
+  quantity: number;
+  max_quantity: number;
+  unit: string;
+  category: string;
+  location: string;
+  image_url: string;
+  qr_code_url: string;
+  expiration_date?: string;
+  created_at?: string;
+  is_inactive?: boolean;
+  is_gep?: boolean;
+  active_ingredients?: string | string[] | null;
+}
+
+const mapMaterialFromDb = (m: DbMaterial): Material => {
+  let activeIngredients: string[] = [];
+  if (m.active_ingredients) {
+    try {
+      activeIngredients = typeof m.active_ingredients === 'string'
+        ? JSON.parse(m.active_ingredients)
+        : m.active_ingredients as string[];
+    } catch {
+      activeIngredients = [];
+    }
+  }
+  return {
+    ...m,
+    active_ingredients: activeIngredients
+  };
+};
+
+const mapMaterialToDb = (m: Partial<Material>) => {
+  const copy = { ...m } as Record<string, unknown>;
+  if (m.active_ingredients !== undefined) {
+    copy.active_ingredients = m.active_ingredients ? JSON.stringify(m.active_ingredients) : null;
+  }
+  return copy;
+};
+
 // ----------------------------------------------------
 // DATABASE SERVICE LAYER (MOCK/SUPABASE UNIFIED)
 // ----------------------------------------------------
@@ -517,7 +560,7 @@ export const dbService = {
   // FETCH MATERIALS
   getMaterials: async (): Promise<Material[]> => {
     if (dbService.isMockMode()) {
-      return getLocalMaterials();
+      return getLocalMaterials().map(mapMaterialFromDb);
     }
 
     const { data, error } = await supabase!
@@ -526,14 +569,15 @@ export const dbService = {
       .order('id', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    return (data || []).map(mapMaterialFromDb);
   },
 
   // FETCH MATERIAL BY ID
   getMaterialById: async (id: string): Promise<Material | null> => {
     if (dbService.isMockMode()) {
       const mats = getLocalMaterials();
-      return mats.find(m => m.id === id) || null;
+      const found = mats.find(m => m.id === id);
+      return found ? mapMaterialFromDb(found) : null;
     }
 
     const { data, error } = await supabase!
@@ -543,7 +587,7 @@ export const dbService = {
       .maybeSingle();
 
     if (error) throw error;
-    return data;
+    return data ? mapMaterialFromDb(data) : null;
   },
 
   // ADD NEW MATERIAL
@@ -567,14 +611,15 @@ export const dbService = {
       return newMaterial;
     }
 
+    const dbPayload = mapMaterialToDb(newMaterial);
     const { data, error } = await supabase!
       .from('materials')
-      .insert(newMaterial)
+      .insert(dbPayload)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return mapMaterialFromDb(data);
   },
 
   // UPDATE MATERIAL (Admin function)
@@ -593,15 +638,16 @@ export const dbService = {
       return updatedMaterial;
     }
 
+    const dbPayload = mapMaterialToDb(updates);
     const { data, error } = await supabase!
       .from('materials')
-      .update(updates)
+      .update(dbPayload)
       .eq('id', id)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return mapMaterialFromDb(data);
   },
 
   // UPDATE MATERIAL QUANTITY (Checkout / Intake)

@@ -52,7 +52,7 @@ function App() {
           email: email,
           role: data.role === 'admin' ? 'admin' : 'operator',
           avatar_url: data.avatar_url || undefined,
-          is_gep: data.is_gep !== undefined ? !!data.is_gep : (data.role === 'admin')
+          is_gep: data.is_gep != null ? !!data.is_gep : (data.role === 'admin')
         };
       }
     } catch (err) {

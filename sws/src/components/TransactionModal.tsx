@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Package, AlertCircle, ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { X, Package, AlertCircle, ArrowDownRight, ArrowUpRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { dbService } from '../db/dbService';
 import type { Material } from '../db/dbService';
 import { useTranslation } from '../context/LanguageContext';
@@ -22,6 +22,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [transactionQty, setTransactionQty] = useState<number>(1);
   const [transactionNotes, setTransactionNotes] = useState('');
   const [transactionError, setTransactionError] = useState<string | null>(null);
+  const [showIngredients, setShowIngredients] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,6 +124,64 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 </p>
               </div>
             </div>
+
+            {material.active_ingredients && material.active_ingredients.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowIngredients(!showIngredients)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  padding: '8px 12px',
+                  marginBottom: showIngredients ? '0' : '16px',
+                  backgroundColor: 'var(--bg-app)',
+                  border: '1px solid var(--border)',
+                  borderRadius: showIngredients ? '8px 8px 0 0' : '8px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <span>Hatóanyagok ({material.active_ingredients.length})</span>
+                {showIngredients ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+            )}
+            {showIngredients && material.active_ingredients && material.active_ingredients.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '5px',
+                  padding: '10px 12px',
+                  marginBottom: '16px',
+                  backgroundColor: 'var(--bg-app)',
+                  border: '1px solid var(--border)',
+                  borderTop: 'none',
+                  borderRadius: '0 0 8px 8px'
+                }}
+              >
+                {material.active_ingredients.map(ing => (
+                  <span
+                    key={ing}
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      color: 'var(--primary)',
+                      backgroundColor: 'var(--primary-light)',
+                      padding: '2px 7px',
+                      borderRadius: '4px',
+                      border: '1px solid rgba(0, 104, 55, 0.1)'
+                    }}
+                  >
+                    {ing}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {transactionError && (
               <div
