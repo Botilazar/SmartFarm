@@ -78,15 +78,36 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
       setId(`${prefix}-${nextNum}`);
 
       // Auto-adjust unit defaults
-      if (realCategory === 'Herbicit' || realCategory === 'Insecticit' || realCategory === 'Fungicit' || realCategory === 'Biostimulátor' || realCategory === 'Folyékony műtrágya' || realCategory === 'Permetszerek' || realCategory === 'Adalékanyagok') {
+      if (isGep === 'true') {
         setUnit('l');
-      } else if (realCategory === 'Szilárd műtrágya' || realCategory === 'Tápok' || realCategory === 'Vetőmagok') {
-        setUnit('kg');
       } else {
-        setUnit('db');
+        if (realCategory === 'Herbicit' || realCategory === 'Insecticit' || realCategory === 'Fungicit' || realCategory === 'Biostimulátor' || realCategory === 'Folyékony műtrágya' || realCategory === 'Permetszerek' || realCategory === 'Adalékanyagok') {
+          setUnit('l');
+        } else if (realCategory === 'Szilárd műtrágya' || realCategory === 'Tápok' || realCategory === 'Vetőmagok') {
+          setUnit('kg');
+        } else {
+          setUnit('db');
+        }
       }
     }
-  }, [initialData, existingIds]);
+  }, [initialData, existingIds, isGep]);
+
+  const handleGepChange = (gepValue: string) => {
+    setIsGep(gepValue);
+    
+    if (gepValue === 'true') {
+      setUnit('l');
+    } else if (gepValue === 'false') {
+      // Default unit based on category
+      let nextUnit = 'db';
+      if (category === 'Herbicit' || category === 'Insecticit' || category === 'Fungicit' || category === 'Biostimulátor' || category === 'Folyékony műtrágya' || category === 'Permetszerek' || category === 'Adalékanyagok') {
+        nextUnit = 'l';
+      } else if (category === 'Szilárd műtrágya' || category === 'Tápok' || category === 'Vetőmagok') {
+        nextUnit = 'kg';
+      }
+      setUnit(nextUnit);
+    }
+  };
 
   // Run on category select on mount to assign initial suggested ID
   React.useEffect(() => {
@@ -269,18 +290,18 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="mId">{t('mfLabelId')}</label>
-                <input
-                  id="mId"
-                  type="text"
+                <label className="form-label" htmlFor="mGep">GEP</label>
+                <select
+                  id="mGep"
+                  className="form-select"
+                  value={isGep}
+                  onChange={(e) => handleGepChange(e.target.value)}
                   required
-                  disabled={!!initialData}
-                  style={{ opacity: initialData ? 0.7 : 1, cursor: initialData ? 'not-allowed' : 'text' }}
-                  className="form-input-text"
-                  placeholder={t('mfPlaceholderId')}
-                  value={id}
-                  onChange={(e) => setId(e.target.value.toUpperCase())}
-                />
+                >
+                  <option value="">{t('mfGepPlaceholder')}</option>
+                  <option value="true">{t('matGepIgen')}</option>
+                  <option value="false">{t('matGepNem')}</option>
+                </select>
               </div>
             </div>
 
@@ -337,6 +358,15 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
               </div>
             </div>
 
+            {isGep === 'true' && (
+              <p style={{ fontSize: '11px', color: 'var(--primary)', marginTop: '-12px', marginBottom: '16px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <AlertCircle size={12} style={{ flexShrink: 0 }} />
+                <span>
+                  {unit === 'kg' ? t('mfGepInfoKg') : t('mfGepInfoL')}
+                </span>
+              </p>
+            )}
+
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label" htmlFor="mUnit">{t('colUnit')}</label>
@@ -349,6 +379,8 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
                   <option value="db">{t('mfUnitPcs')}</option>
                   <option value="kg">{t('mfUnitKg')}</option>
                   <option value="l">{t('mfUnitL')}</option>
+                  <option value="ml">{t('mfUnitMl')}</option>
+                  <option value="g">{t('mfUnitG')}</option>
                 </select>
               </div>
 
@@ -379,18 +411,18 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="mGep">GEP</label>
-                <select
-                  id="mGep"
-                  className="form-select"
-                  value={isGep}
-                  onChange={(e) => setIsGep(e.target.value)}
+                <label className="form-label" htmlFor="mId">{t('mfLabelId')}</label>
+                <input
+                  id="mId"
+                  type="text"
                   required
-                >
-                  <option value="">-- Válassz... --</option>
-                  <option value="true">Igen</option>
-                  <option value="false">Nem</option>
-                </select>
+                  disabled={!!initialData}
+                  style={{ opacity: initialData ? 0.7 : 1, cursor: initialData ? 'not-allowed' : 'text' }}
+                  className="form-input-text"
+                  placeholder={t('mfPlaceholderId')}
+                  value={id}
+                  onChange={(e) => setId(e.target.value.toUpperCase())}
+                />
               </div>
             </div>
 

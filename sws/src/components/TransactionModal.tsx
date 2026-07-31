@@ -18,6 +18,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   onSubmitSuccess
 }) => {
   const { t } = useTranslation();
+  const gepUnitDisplay = material.unit === 'kg' ? 'g' : (material.unit === 'l' ? 'ml' : 'ml');
   const [transactionType, setTransactionType] = useState<'intake' | 'checkout'>('checkout');
   const [transactionQty, setTransactionQty] = useState<number>(1);
   const [transactionNotes, setTransactionNotes] = useState('');
@@ -34,40 +35,53 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       return;
     }
 
+    // GEP materials store stock in liters (l) or kilograms (kg) but check-in/out is in milliliters (ml) or grams (g)
+    const qtyInDbUnit = material.is_gep ? qty / 1000 : qty;
+
     let newQty = material.quantity;
     if (transactionType === 'checkout') {
-      if (qty > material.quantity) {
+      if (qtyInDbUnit > material.quantity) {
+        const currentStockGep = material.quantity * 1000;
+        const currentStockDisplay = material.is_gep ? `${currentStockGep}` : `${material.quantity}`;
+        const unitDisplay = material.is_gep ? gepUnitDisplay : material.unit;
+        
         const notEnoughMsg = (t('txErrorNotEnoughStock') || 'Nincs elég készlet! Jelenleg elérhető: {current} {unit}')
-          .replace('{current}', String(material.quantity))
-          .replace('{unit}', material.unit);
+          .replace('{current}', currentStockDisplay)
+          .replace('{unit}', unitDisplay);
         setTransactionError(notEnoughMsg);
         return;
       }
-      newQty -= qty;
+      newQty -= qtyInDbUnit;
     } else {
-      const totalQtyAfterIntake = material.quantity + qty;
+      const totalQtyAfterIntake = material.quantity + qtyInDbUnit;
       if (totalQtyAfterIntake > material.max_quantity) {
+        const maxCapacityGep = material.max_quantity * 1000;
+        const totalQtyGep = totalQtyAfterIntake * 1000;
+        const totalDisplay = material.is_gep ? `${totalQtyGep}` : `${totalQtyAfterIntake}`;
+        const maxDisplay = material.is_gep ? `${maxCapacityGep}` : `${material.max_quantity}`;
+        const unitDisplay = material.is_gep ? gepUnitDisplay : material.unit;
+
         const maxCapacityMsg = (t('txErrorMaxCapacity') || 'A felvenni kívánt mennyiséggel ({total} {unit}) a készlet meghaladná a maximális kapacitást ({max} {unit})! Növeld a maximum kapacitást az anyag szerkesztésénél.')
-          .replace('{total}', String(totalQtyAfterIntake))
-          .replace('{max}', String(material.max_quantity))
-          .replaceAll('{unit}', material.unit);
+          .replace('{total}', totalDisplay)
+          .replace('{max}', maxDisplay)
+          .replaceAll('{unit}', unitDisplay);
         setTransactionError(maxCapacityMsg);
         return;
       }
-      newQty += qty;
+      newQty += qtyInDbUnit;
     }
 
     try {
-      // Update quantity
+      // Update quantity in DB
       await dbService.updateMaterialQuantity(material.id, newQty);
       
-      // Log transaction
+      // Log transaction (log in ml/g for GEP materials)
       await dbService.addTransaction({
         material_id: material.id,
         material_name: material.name,
         type: transactionType,
         quantity: transactionType === 'checkout' ? -qty : qty,
-        unit: material.unit,
+        unit: material.is_gep ? gepUnitDisplay : material.unit,
         user_name: userName,
         notes: transactionNotes.trim() || undefined
       });
@@ -146,7 +160,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   transition: 'all 0.15s ease'
                 }}
               >
-                <span>Hatóanyagok ({material.active_ingredients.length})</span>
+                <span>{t('txLabelIngredients')} ({material.active_ingredients.length})</span>
                 {showIngredients ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
             )}
@@ -238,7 +252,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="txQty">{t('txQtyLabel')} ({material.unit})</label>
+              <label className="form-label" htmlFor="txQty">{t('txQtyLabel')} ({material.is_gep ? gepUnitDisplay : material.unit})</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
                   id="txQty"
@@ -252,7 +266,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   onChange={(e) => setTransactionQty(Number(e.target.value))}
                 />
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  {[1, 2, 5, 10, 50].map((num) => (
+                  {(material.is_gep ? [50, 100, 250, 500, 1000] : [1, 2, 5, 10, 50]).map((num) => (
                     <button
                       key={num}
                       type="button"

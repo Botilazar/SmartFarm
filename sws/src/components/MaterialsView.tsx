@@ -554,9 +554,9 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
             value={selectedGepFilter}
             onChange={(e) => setSelectedGepFilter(e.target.value as 'All' | 'Igen' | 'Nem')}
           >
-            <option value="All">Mind</option>
-            <option value="Igen">Igen</option>
-            <option value="Nem">Nem</option>
+            <option value="All">{t('matGepMind')}</option>
+            <option value="Igen">{t('matGepIgen')}</option>
+            <option value="Nem">{t('matGepNem')}</option>
           </select>
         </div>
       </div>

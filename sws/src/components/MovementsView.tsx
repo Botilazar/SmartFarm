@@ -185,7 +185,7 @@ export const MovementsView: React.FC<MovementsViewProps> = ({
               </div>
               <div className="mobile-stock-card-right">
                 <span className={`movement-qty ${tItem.type}`} style={{ fontSize: '12px' }}>
-                  {tItem.quantity > 0 ? `+${tItem.quantity}` : tItem.quantity}
+                  {tItem.quantity > 0 ? `+${tItem.quantity}` : tItem.quantity} {tItem.unit || ''}
                 </span>
                 <span style={{ fontSize: '9px', color: 'var(--text-secondary)' }}>
                   {formatDateTime(tItem.timestamp)}
@@ -326,7 +326,7 @@ export const MovementsView: React.FC<MovementsViewProps> = ({
                     </span>
                   </td>
                   <td style={{ fontWeight: 700, color: tItem.type === 'intake' ? 'var(--success)' : 'var(--danger)' }}>
-                    {tItem.quantity > 0 ? `+${tItem.quantity}` : tItem.quantity}
+                    {tItem.quantity > 0 ? `+${tItem.quantity}` : tItem.quantity} {tItem.unit || ''}
                   </td>
                   <td>{tItem.user_name}</td>
                   
